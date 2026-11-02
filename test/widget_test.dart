@@ -34,4 +34,27 @@ void main() {
     expect(prs.single.weight, 60);
     expect(prs.single.previous, 55);
   });
+
+  test('superset links adjacent, survives into the next session via the template', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final legs = store.rotasOf(store.days.last.id).single;
+    final s1 = store.startSession(legs);
+    final abd = s1.exercises.indexWhere((e) => e.name == 'Hip abduction');
+    final add = s1.exercises.indexWhere((e) => e.name == 'Hip adduction');
+    store.linkSuperset(s1, abd, add, keepInTemplate: true);
+    expect(s1.exercises[abd + 1].name, 'Hip adduction');
+    expect(s1.exercises[abd].supersetId, isNotNull);
+    expect(s1.exercises[abd].supersetId, s1.exercises[abd + 1].supersetId);
+    store.addSet(s1, abd, 20);
+    store.finishSession(s1);
+
+    final s2 = store.startSession(legs);
+    final a = s2.exercises.indexWhere((e) => e.name == 'Hip abduction');
+    expect(s2.exercises[a + 1].supersetId, s2.exercises[a].supersetId);
+    expect(s2.exercises[a].supersetId, isNotNull);
+
+    store.unlinkSuperset(s2, s2.exercises[a].supersetId!, fromTemplate: true);
+    expect(s2.exercises.every((e) => e.supersetId == null), isTrue);
+    expect(legs.supersets, isEmpty);
+  });
 }

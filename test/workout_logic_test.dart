@@ -121,4 +121,30 @@ void main() {
       expect(formatWeight(12.25), '12.25');
     });
   });
+
+  group('supersets', () {
+    test('next member alternates A, B, A', () {
+      expect(supersetNext([0, 0]), 0);
+      expect(supersetNext([1, 0]), 1);
+      expect(supersetNext([1, 1]), 0);
+      expect(supersetNext([2, 1]), 1);
+    });
+
+    test('round counts completed pairs', () {
+      expect(supersetRound([0, 0]), 1);
+      expect(supersetRound([1, 0]), 1);
+      expect(supersetRound([2, 2]), 3);
+    });
+  });
+
+  group('record card', () {
+    test('gain is measured from the first session', () {
+      final h = [done(pushA, 1, {'Fly': [120]}), done(pushA, 4, {'Fly': [200]}), done(pushA, 7, {'Fly': [180]})];
+      final d = recordCardData('Fly', h)!;
+      expect(d.record, 200);
+      expect(d.gain, 80);
+      expect(d.recentTops, [120, 200, 180]);
+      expect(recordCardData('Squat', h), isNull);
+    });
+  });
 }

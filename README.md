@@ -39,6 +39,8 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 - **🏆 Automatic PRs** — a set that beats your all-time best turns navy and the exercise shows **New PR**. Home lists your recent PRs with the gain.
 - **🔁 PPL with rotas** — Push A / Push B, Pull A / Pull B, a single Legs day… any mix. Days cycle in order, rotas alternate.
 - **🧭 Suggest, never enforce** — yesterday was Push, so Pull is pre-selected. Want Legs instead? One tap.
+- **🔗 Supersets** — link two exercises; they sit in one card as A and B, and "Next up" alternates for you. Save the pair to the template so it's linked every time.
+- **📸 PR share card** — hit a PR, tap Share: a story-size navy card with your number, gain and progress bars, ready for WhatsApp or Instagram.
 - **🔢 Gym-friendly keypad** — big keys, `±2.5` / `±5` quick buttons, drop-set toggle. No system keyboard popping up.
 - **🔎 Autocomplete** — ~60 standard exercise names built in; anything new you type is remembered.
 - **📈 Progress** — top weight per session as a chart, full history, and gain since you started.
@@ -100,7 +102,7 @@ lib/
 
 **Design choices**
 
-- **Zero code generation, one dependency** (`path_provider`). Builds are fast and reliable.
+- **Zero code generation, two small dependencies** (`path_provider`, `share_plus`). Builds are fast and reliable.
 - **Storage behind an interface** — swapping the JSON file for SQLite/Drift touches one file.
 - **Atomic saves** — writes go to a temp file then rename, so a crash never corrupts data.
 - **Design tokens in one file** — every colour, radius and text style comes from `core/theme.dart`.
@@ -133,6 +135,8 @@ If a build fails, the workflow opens an issue with the error log. Doc-only chang
 
 ## 🗺️ Roadmap
 
+- [x] Supersets
+- [x] PR share card
 - [ ] Import history from the old Google Sheet (`40--55--65--75`, `30x3`, `80ds`)
 - [ ] Optional reps per set
 - [ ] Rest timer between sets

@@ -7,7 +7,7 @@ Offline Flutter gym logger: PPL days, A/B rotas, one-tap set logging, automatic 
 
 ## Architecture (v1 as built)
 
-v1 deliberately uses zero codegen and one dependency (`path_provider`) so it builds reliably in CI.
+v1 deliberately uses zero codegen and two small dependencies (`path_provider`, `share_plus`) so it builds reliably in CI.
 The plan's Drift/Riverpod stack is a later migration; the layers below make that a contained change.
 
 ```

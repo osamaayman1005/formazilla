@@ -174,3 +174,45 @@ List<String> searchExercises(String query, List<String> library, {int limit = 8}
   final contains = library.where((n) => !exerciseKey(n).startsWith(q) && exerciseKey(n).contains(q));
   return [...prefix, ...contains].take(limit).toList();
 }
+
+// ---------- Supersets ----------
+
+/// Which member of a superset to do next: the one with the fewest sets so far
+/// (the first one wins ties), so A → B → A → B.
+int supersetNext(List<int> setCounts) {
+  var best = 0;
+  for (var i = 1; i < setCounts.length; i++) {
+    if (setCounts[i] < setCounts[best]) best = i;
+  }
+  return best;
+}
+
+/// Current round, 1-based: full rounds completed + 1.
+int supersetRound(List<int> setCounts) =>
+    setCounts.isEmpty ? 1 : setCounts.reduce((a, b) => a < b ? a : b) + 1;
+
+// ---------- PR share card ----------
+
+/// Everything the PR share card shows for one exercise.
+class RecordCardData {
+  final String exercise;
+  final double record;
+  final double gain;
+  final DateTime since;
+  final List<double> recentTops;
+  const RecordCardData(this.exercise, this.record, this.gain, this.since, this.recentTops);
+}
+
+RecordCardData? recordCardData(String exercise, Iterable<Session> sessions, {int bars = 7}) {
+  final history = topSetHistory(exercise, sessions);
+  if (history.isEmpty) return null;
+  final record = history.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
+  final tops = history.map((p) => p.weight).toList();
+  return RecordCardData(
+    exercise,
+    record,
+    record - history.first.weight,
+    history.first.date,
+    tops.length > bars ? tops.sublist(tops.length - bars) : tops,
+  );
+}

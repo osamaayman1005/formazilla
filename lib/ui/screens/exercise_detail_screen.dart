@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../domain/workout_logic.dart' show TopSet;
+import '../navigation.dart';
 import '../widgets/common.dart';
 import '../widgets/store_scope.dart';
 
@@ -21,7 +22,14 @@ class ExerciseDetailScreen extends StatelessWidget {
     final gainText = '${gain >= 0 ? '+' : ''}${formatWeight(gain)}';
 
     return Scaffold(
-      appBar: AppBar(title: Text(name)),
+      appBar: AppBar(title: Text(name), actions: [
+        if (history.isNotEmpty)
+          IconButton(
+            tooltip: 'Share PR card',
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => openRecordCard(context, name),
+          ),
+      ]),
       body: history.isEmpty
           ? const EmptyState(title: 'No sets yet', body: 'Log this exercise in a workout to see progress.')
           : ListView(

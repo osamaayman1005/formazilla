@@ -1,0 +1,364 @@
+/// Exercise cards inside the session logger: a single exercise, or a superset
+/// (two or more exercises done alternately in one card).
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../core/format.dart';
+import '../../core/theme.dart';
+import '../../data/models.dart';
+import '../../domain/workout_logic.dart' show isNewRecord, supersetNext, supersetRound;
+import '../../state/app_store.dart';
+import 'common.dart';
+import 'keypad_sheet.dart';
+import 'set_chip.dart';
+
+/// Groups consecutive exercises sharing a superset id. Single members render as
+/// plain cards (e.g. after an undo restored only one of a pair).
+List<List<int>> groupExercises(Session s) {
+  final groups = <List<int>>[];
+  var i = 0;
+  while (i < s.exercises.length) {
+    final id = s.exercises[i].supersetId;
+    final group = [i];
+    while (id != null && i + 1 < s.exercises.length && s.exercises[i + 1].supersetId == id) {
+      group.add(++i);
+    }
+    groups.add(group);
+    i++;
+  }
+  return groups;
+}
+
+/// One exercise in its own card.
+class ExerciseCard extends StatelessWidget {
+  const ExerciseCard({super.key, required this.store, required this.session, required this.index});
+
+  final AppStore store;
+  final Session session;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
+      child: ExerciseBody(store: store, session: session, index: index, showMenu: true),
+    );
+  }
+}
+
+/// Two or more exercises done alternately: A → B → A → B.
+class SupersetCard extends StatelessWidget {
+  const SupersetCard({super.key, required this.store, required this.session, required this.indexes});
+
+  final AppStore store;
+  final Session session;
+  final List<int> indexes;
+
+  @override
+  Widget build(BuildContext context) {
+    final counts = [for (final i in indexes) session.exercises[i].sets.length];
+    final next = supersetNext(counts);
+    final id = session.exercises[indexes.first].supersetId!;
+    return AppCard(
+      borderColor: AppColors.accentLight,
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Pill('Superset', fill: AppColors.accent, color: AppColors.onAccent),
+          const SizedBox(width: AppSpace.sm),
+          Expanded(child: Text('Round ${supersetRound(counts)}', style: AppText.caption)),
+          TextButton(
+            onPressed: () => _unlink(context, id),
+            child: const Text('Unlink', style: TextStyle(color: AppColors.accentLight)),
+          ),
+        ]),
+        for (var k = 0; k < indexes.length; k++) ...[
+          if (k > 0) const Divider(color: AppColors.line, height: 20, endIndent: 12),
+          ExerciseBody(
+            store: store,
+            session: session,
+            index: indexes[k],
+            letter: String.fromCharCode(65 + k),
+            nextUp: k == next,
+            showMenu: true,
+          ),
+        ],
+        const SizedBox(height: AppSpace.xs),
+        const Padding(
+          padding: EdgeInsets.only(right: 12),
+          child: Text('Log A, then B. "Next up" moves on its own.', style: AppText.small),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _unlink(BuildContext context, String id) async {
+    var fromTemplate = false;
+    if (store.isTemplatePair(session, id)) {
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Unlink superset'),
+          content: const Text('This pair is saved in the template too.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, 'today'), child: const Text('Just today')),
+            TextButton(onPressed: () => Navigator.pop(c, 'always'), child: const Text('Also template')),
+          ],
+        ),
+      );
+      if (choice == null) return;
+      fromTemplate = choice == 'always';
+    }
+    store.unlinkSuperset(session, id, fromTemplate: fromTemplate);
+  }
+}
+
+/// Name, PR badge, last-time line and set chips for one exercise.
+class ExerciseBody extends StatelessWidget {
+  const ExerciseBody({
+    super.key,
+    required this.store,
+    required this.session,
+    required this.index,
+    this.letter,
+    this.nextUp = false,
+    this.showMenu = false,
+  });
+
+  final AppStore store;
+  final Session session;
+  final int index;
+  final String? letter;
+  final bool nextUp;
+  final bool showMenu;
+
+  SessionExercise get _ex => session.exercises[index];
+
+  @override
+  Widget build(BuildContext context) {
+    final ex = _ex;
+    final best = store.recordBefore(ex.name, session.id);
+    final last = store.lastTime(ex.name, session.id);
+    final top = ex.sets.isEmpty ? null : ex.sets.map((s) => s.weight).reduce((a, b) => a > b ? a : b);
+    final hitRecord = top != null && isNewRecord(top, best);
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        if (letter != null) ...[
+          _LetterBadge(letter!, active: nextUp),
+          const SizedBox(width: AppSpace.sm),
+        ],
+        Expanded(child: Text(ex.name, style: AppText.cardTitle)),
+        if (nextUp) ...[
+          const Pill('Next up', color: AppColors.accentLight, outline: AppColors.accentLight, fontSize: 11),
+          const SizedBox(width: 6),
+        ],
+        if (hitRecord)
+          Pill('New PR ${formatWeight(top!)}', fill: AppColors.accent, color: AppColors.onAccent)
+        else if (best != null)
+          Text('PR ${formatWeight(best)}', style: AppText.small.copyWith(fontWeight: FontWeight.w500)),
+        if (showMenu) _menu(context) else const SizedBox(width: 12, height: 40),
+      ]),
+      Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Text(
+          last.isEmpty ? 'First time — tap + to log' : 'Last   ${formatWeights(last)}',
+          style: AppText.caption,
+        ),
+      ),
+      const SizedBox(height: AppSpace.sm),
+      Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Wrap(spacing: 8, runSpacing: 8, children: [
+          for (var i = 0; i < ex.sets.length; i++)
+            SetChip(
+              kind: isNewRecord(ex.sets[i].weight, best) ? ChipKind.record : ChipKind.done,
+              weight: ex.sets[i].weight,
+              dropSet: ex.sets[i].dropSet,
+              index: i,
+              onTap: () => _edit(context, i),
+              onLongPress: () {
+                HapticFeedback.selectionClick();
+                store.toggleDropSet(session, index, i);
+              },
+            ),
+          for (var j = ex.sets.length; j < last.length; j++)
+            SetChip(
+              kind: ChipKind.ghost,
+              weight: last[j],
+              onTap: () {
+                HapticFeedback.lightImpact();
+                store.addSet(session, index, last[j]);
+              },
+            ),
+          SetChip(
+            kind: ChipKind.add,
+            onTap: () => _quickAdd(context, last),
+            onLongPress: () => _addWithKeypad(context),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _menu(BuildContext context) {
+    final inSuperset = _ex.supersetId != null;
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, color: AppColors.muted, size: 20),
+      color: AppColors.chip,
+      onSelected: (v) {
+        switch (v) {
+          case 'up':
+            store.moveExercise(session, index, index - 1);
+          case 'down':
+            store.moveExercise(session, index, index + 1);
+          case 'superset':
+            showLinkSupersetSheet(context, store, session, index);
+          case 'remove':
+            final removed = _ex;
+            store.removeExercise(session, index);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('${removed.name} removed'),
+              action: SnackBarAction(label: 'Undo', onPressed: () => store.insertExercise(session, index, removed)),
+            ));
+        }
+      },
+      itemBuilder: (_) => [
+        if (!inSuperset) const PopupMenuItem(value: 'superset', child: Text('Superset with…')),
+        const PopupMenuItem(value: 'up', child: Text('Move up')),
+        const PopupMenuItem(value: 'down', child: Text('Move down')),
+        const PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
+      ],
+    );
+  }
+
+  /// "+" logs the previous set again, or last time's first set, or opens the keypad.
+  void _quickAdd(BuildContext context, List<double> last) {
+    final sets = _ex.sets;
+    final weight = sets.isNotEmpty ? sets.last.weight : (last.isNotEmpty ? last.first : null);
+    if (weight == null) {
+      _addWithKeypad(context);
+      return;
+    }
+    HapticFeedback.lightImpact();
+    store.addSet(session, index, weight);
+  }
+
+  Future<void> _addWithKeypad(BuildContext context) async {
+    final sets = _ex.sets;
+    final r = await showWeightKeypad(
+      context,
+      title: '${_ex.name} · set ${sets.length + 1}',
+      initial: sets.isNotEmpty ? sets.last.weight : null,
+    );
+    if (r?.weight != null) store.addSet(session, index, r!.weight!, dropSet: r.dropSet);
+  }
+
+  Future<void> _edit(BuildContext context, int setIndex) async {
+    final set = _ex.sets[setIndex];
+    final r = await showWeightKeypad(
+      context,
+      title: '${_ex.name} · set ${setIndex + 1}',
+      initial: set.weight,
+      dropSet: set.dropSet,
+      allowDelete: true,
+    );
+    if (r == null) return;
+    if (r.deleted) {
+      store.removeSet(session, index, setIndex);
+    } else if (r.weight != null) {
+      store.updateSet(session, index, setIndex, r.weight!, r.dropSet);
+    }
+  }
+}
+
+class _LetterBadge extends StatelessWidget {
+  const _LetterBadge(this.letter, {required this.active});
+
+  final String letter;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 26,
+      height: 26,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: active ? AppColors.accentLight : AppColors.chip,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(letter,
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: active ? AppColors.bg : AppColors.text)),
+    );
+  }
+}
+
+/// Bottom sheet: pick the exercise to alternate with, optionally save to the template.
+Future<void> showLinkSupersetSheet(BuildContext context, AppStore store, Session session, int index) {
+  final candidates = [
+    for (var i = 0; i < session.exercises.length; i++)
+      if (i != index && session.exercises[i].supersetId == null) i,
+  ];
+  int? chosen = candidates.isEmpty ? null : candidates.firstWhere((i) => i > index, orElse: () => candidates.first);
+  var keep = true;
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setState) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpace.xl, 0, AppSpace.xl, AppSpace.lg),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Superset with…', style: AppText.title),
+            const SizedBox(height: 4),
+            Text('${session.exercises[index].name} will alternate with:', style: AppText.caption),
+            const SizedBox(height: AppSpace.md),
+            if (candidates.isEmpty)
+              const Text('Add another exercise to this workout first.', style: AppText.body)
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(c).height * 0.4),
+                child: Container(
+                  decoration: BoxDecoration(color: AppColors.chip, borderRadius: BorderRadius.circular(AppRadius.card)),
+                  child: ListView(shrinkWrap: true, padding: const EdgeInsets.symmetric(vertical: 4), children: [
+                    for (final i in candidates)
+                      ListTile(
+                        title: Text(session.exercises[i].name, style: AppText.body),
+                        trailing: Icon(
+                          chosen == i ? Icons.radio_button_checked : Icons.radio_button_off,
+                          color: chosen == i ? AppColors.accentLight : AppColors.muted,
+                        ),
+                        onTap: () => setState(() => chosen = i),
+                      ),
+                  ]),
+                ),
+              ),
+            const SizedBox(height: AppSpace.sm),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: keep,
+              onChanged: (v) => setState(() => keep = v),
+              title: Text('Keep linked in the ${store.rotaLabel(session.dayId, session.rotaId)} template',
+                  style: AppText.body),
+            ),
+            const SizedBox(height: AppSpace.sm),
+            PrimaryButton(
+              'Link as superset',
+              onPressed: chosen == null
+                  ? null
+                  : () {
+                      store.linkSuperset(session, index, chosen!, keepInTemplate: keep);
+                      HapticFeedback.mediumImpact();
+                      Navigator.pop(c);
+                    },
+            ),
+          ]),
+        ),
+      ),
+    ),
+  );
+}

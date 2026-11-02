@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import 'screens/exercise_detail_screen.dart';
+import 'screens/record_card_screen.dart';
 import 'screens/rota_detail_screen.dart';
 import 'screens/session_detail_screen.dart';
 import 'screens/session_screen.dart';
@@ -22,3 +23,11 @@ Future<void> openRota(BuildContext context, Rota rota) =>
 
 Future<void> openSessionDetail(BuildContext context, Session s) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => SessionDetailScreen(sessionId: s.id)));
+
+Future<void> openRecordCard(BuildContext context, String exercise,
+    {String? subtitle, int? prsToday, bool replace = false}) {
+  final route = MaterialPageRoute<void>(
+    builder: (_) => RecordCardScreen(exercise: exercise, subtitle: subtitle, prsToday: prsToday),
+  );
+  return replace ? Navigator.of(context).pushReplacement(route) : Navigator.of(context).push(route);
+}

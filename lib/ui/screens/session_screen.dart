@@ -6,12 +6,12 @@ import 'package:flutter/services.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
-import '../../domain/workout_logic.dart' show RecordEvent, isNewRecord;
+import '../../domain/workout_logic.dart' show RecordEvent;
 import '../../state/app_store.dart';
+import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/exercise_block.dart';
 import '../widgets/exercise_input.dart';
-import '../widgets/keypad_sheet.dart';
-import '../widgets/set_chip.dart';
 import '../widgets/store_scope.dart';
 
 /// Full-screen workout logger. Everything autosaves; leaving keeps the session
@@ -67,15 +67,22 @@ class _SessionScreenState extends State<SessionScreen> {
               padding: const EdgeInsets.fromLTRB(AppSpace.screen, 0, AppSpace.screen, AppSpace.xl),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               children: [
-                for (var i = 0; i < session.exercises.length; i++)
+                for (final group in groupExercises(session))
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSpace.md),
-                    child: _ExerciseCard(
-                      key: ObjectKey(session.exercises[i]),
-                      store: store,
-                      session: session,
-                      index: i,
-                    ),
+                    child: group.length > 1
+                        ? SupersetCard(
+                            key: ObjectKey(session.exercises[group.first]),
+                            store: store,
+                            session: session,
+                            indexes: group,
+                          )
+                        : ExerciseCard(
+                            key: ObjectKey(session.exercises[group.first]),
+                            store: store,
+                            session: session,
+                            index: group.first,
+                          ),
                   ),
                 ExerciseInput(
                   search: store.searchLibrary,
@@ -83,7 +90,7 @@ class _SessionScreenState extends State<SessionScreen> {
                 ),
                 const SizedBox(height: AppSpace.md),
                 const Text(
-                  'Tap dashed = same as last time · Tap + to repeat · Long-press a set = drop set',
+                  'Tap dashed = same as last time · Tap + to repeat · Long-press a set = drop set · ⋮ = superset',
                   style: AppText.small,
                   textAlign: TextAlign.center,
                 ),
@@ -116,14 +123,20 @@ class _SessionScreenState extends State<SessionScreen> {
     }
     final duration = DateTime.now().difference(session.startedAt);
     final sets = session.setCount;
+    final label = store.rotaLabel(session.dayId, session.rotaId);
     final records = store.finishSession(session);
     HapticFeedback.mediumImpact();
     if (!context.mounted) return;
-    await showDialog<void>(
+    final share = await showDialog<RecordEvent>(
       context: context,
       builder: (c) => _SummaryDialog(duration: duration, sets: sets, records: records),
     );
-    if (context.mounted) Navigator.of(context).pop();
+    if (!context.mounted) return;
+    if (share != null) {
+      openRecordCard(context, share.exercise, subtitle: label, prsToday: records.length, replace: true);
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 }
 
@@ -184,144 +197,7 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _ExerciseCard extends StatelessWidget {
-  const _ExerciseCard({super.key, required this.store, required this.session, required this.index});
-
-  final AppStore store;
-  final Session session;
-  final int index;
-
-  SessionExercise get _ex => session.exercises[index];
-
-  @override
-  Widget build(BuildContext context) {
-    final ex = _ex;
-    final best = store.recordBefore(ex.name, session.id);
-    final last = store.lastTime(ex.name, session.id);
-    final top = ex.sets.isEmpty ? null : ex.sets.map((s) => s.weight).reduce((a, b) => a > b ? a : b);
-    final hitRecord = top != null && isNewRecord(top, best);
-
-    return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(ex.name, style: AppText.cardTitle)),
-          if (hitRecord)
-            Pill('New PR ${formatWeight(top!)}', fill: AppColors.accent, color: AppColors.onAccent)
-          else if (best != null)
-            Text('PR ${formatWeight(best)}', style: AppText.small.copyWith(fontWeight: FontWeight.w500)),
-          _menu(context),
-        ]),
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Text(
-            last.isEmpty ? 'First time — tap + to log' : 'Last   ${formatWeights(last)}',
-            style: AppText.caption,
-          ),
-        ),
-        const SizedBox(height: AppSpace.sm),
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: Wrap(spacing: 8, runSpacing: 8, children: [
-            for (var i = 0; i < ex.sets.length; i++)
-              SetChip(
-                kind: isNewRecord(ex.sets[i].weight, best) ? ChipKind.record : ChipKind.done,
-                weight: ex.sets[i].weight,
-                dropSet: ex.sets[i].dropSet,
-                index: i,
-                onTap: () => _edit(context, i),
-                onLongPress: () {
-                  HapticFeedback.selectionClick();
-                  store.toggleDropSet(session, index, i);
-                },
-              ),
-            for (var j = ex.sets.length; j < last.length; j++)
-              SetChip(
-                kind: ChipKind.ghost,
-                weight: last[j],
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  store.addSet(session, index, last[j]);
-                },
-              ),
-            SetChip(
-              kind: ChipKind.add,
-              onTap: () => _quickAdd(context, last),
-              onLongPress: () => _addWithKeypad(context),
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  Widget _menu(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: AppColors.muted, size: 20),
-      color: AppColors.chip,
-      onSelected: (v) {
-        switch (v) {
-          case 'up':
-            store.moveExercise(session, index, index - 1);
-          case 'down':
-            store.moveExercise(session, index, index + 1);
-          case 'remove':
-            final removed = _ex;
-            store.removeExercise(session, index);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('${removed.name} removed'),
-              action: SnackBarAction(label: 'Undo', onPressed: () => store.insertExercise(session, index, removed)),
-            ));
-        }
-      },
-      itemBuilder: (_) => const [
-        PopupMenuItem(value: 'up', child: Text('Move up')),
-        PopupMenuItem(value: 'down', child: Text('Move down')),
-        PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
-      ],
-    );
-  }
-
-  /// "+" logs the previous set again, or last time's first set, or opens the keypad.
-  void _quickAdd(BuildContext context, List<double> last) {
-    final sets = _ex.sets;
-    final weight = sets.isNotEmpty ? sets.last.weight : (last.isNotEmpty ? last.first : null);
-    if (weight == null) {
-      _addWithKeypad(context);
-      return;
-    }
-    HapticFeedback.lightImpact();
-    store.addSet(session, index, weight);
-  }
-
-  Future<void> _addWithKeypad(BuildContext context) async {
-    final sets = _ex.sets;
-    final r = await showWeightKeypad(
-      context,
-      title: '${_ex.name} · set ${sets.length + 1}',
-      initial: sets.isNotEmpty ? sets.last.weight : null,
-    );
-    if (r?.weight != null) store.addSet(session, index, r!.weight!, dropSet: r.dropSet);
-  }
-
-  Future<void> _edit(BuildContext context, int setIndex) async {
-    final set = _ex.sets[setIndex];
-    final r = await showWeightKeypad(
-      context,
-      title: '${_ex.name} · set ${setIndex + 1}',
-      initial: set.weight,
-      dropSet: set.dropSet,
-      allowDelete: true,
-    );
-    if (r == null) return;
-    if (r.deleted) {
-      store.removeSet(session, index, setIndex);
-    } else if (r.weight != null) {
-      store.updateSet(session, index, setIndex, r.weight!, r.dropSet);
-    }
-  }
-}
-
+/// Workout summary. Returns the PR to share, or null for "Done".
 class _SummaryDialog extends StatelessWidget {
   const _SummaryDialog({required this.duration, required this.sets, required this.records});
 
@@ -331,6 +207,7 @@ class _SummaryDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final best = records.isEmpty ? null : (records.toList()..sort((a, b) => b.delta.compareTo(a.delta))).first;
     return AlertDialog(
       title: Text(records.isEmpty ? 'Workout saved' : 'Workout saved · ${records.length} PR${records.length == 1 ? '' : 's'}'),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -347,7 +224,16 @@ class _SummaryDialog extends StatelessWidget {
             ]),
           ),
       ]),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))],
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+        if (best != null)
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, best),
+            icon: const Icon(Icons.ios_share, size: 18),
+            label: const Text('Share PR'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: AppColors.onAccent),
+          ),
+      ],
     );
   }
 }

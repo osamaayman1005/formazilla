@@ -22,6 +22,9 @@ class Rota {
   bool isStarter;
   List<String> exercises;
 
+  /// Pairs of exercise names that are always done as a superset.
+  List<List<String>> supersets;
+
   Rota({
     required this.id,
     required this.dayId,
@@ -29,7 +32,9 @@ class Rota {
     required this.position,
     this.isStarter = false,
     List<String>? exercises,
-  }) : exercises = exercises ?? [];
+    List<List<String>>? supersets,
+  })  : exercises = exercises ?? [],
+        supersets = supersets ?? [];
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -38,6 +43,7 @@ class Rota {
         'position': position,
         'isStarter': isStarter,
         'exercises': exercises,
+        'supersets': supersets,
       };
 
   factory Rota.fromJson(Map<String, dynamic> j) => Rota(
@@ -47,6 +53,9 @@ class Rota {
         position: j['position'] as int,
         isStarter: (j['isStarter'] as bool?) ?? false,
         exercises: (j['exercises'] as List).cast<String>().toList(),
+        supersets: ((j['supersets'] as List?) ?? const [])
+            .map((p) => (p as List).cast<String>().toList())
+            .toList(),
       );
 }
 
@@ -66,12 +75,20 @@ class SessionExercise {
   String name;
   List<SetLog> sets;
 
-  SessionExercise({required this.name, List<SetLog>? sets}) : sets = sets ?? [];
+  /// Exercises sharing the same id are done as a superset (alternating).
+  String? supersetId;
 
-  Map<String, dynamic> toJson() => {'name': name, 'sets': sets.map((s) => s.toJson()).toList()};
+  SessionExercise({required this.name, List<SetLog>? sets, this.supersetId}) : sets = sets ?? [];
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'sets': sets.map((s) => s.toJson()).toList(),
+        if (supersetId != null) 'ss': supersetId,
+      };
 
   factory SessionExercise.fromJson(Map<String, dynamic> j) => SessionExercise(
         name: j['name'] as String,
+        supersetId: j['ss'] as String?,
         sets: (j['sets'] as List).map((e) => SetLog.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }

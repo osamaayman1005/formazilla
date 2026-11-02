@@ -72,6 +72,7 @@ class AppStore extends ChangeNotifier {
   List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _data.sessions);
   List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_data.sessions);
   List<String> searchLibrary(String q) => logic.searchExercises(q, _data.library);
+  logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _data.sessions);
 
   // ---------- Library ----------
 
@@ -92,6 +93,9 @@ class AppStore extends ChangeNotifier {
       startedAt: DateTime.now(),
       exercises: rota.exercises.map((n) => SessionExercise(name: n)).toList(),
     );
+    for (final pair in rota.supersets) {
+      _applySuperset(s, pair);
+    }
     _data.sessions.add(s);
     _commit();
     return s;
@@ -119,7 +123,8 @@ class AppStore extends ChangeNotifier {
   }
 
   void removeExercise(Session s, int index) {
-    s.exercises.removeAt(index);
+    final removed = s.exercises.removeAt(index);
+    _dissolve(s, removed.supersetId);
     _commit();
   }
 
@@ -130,10 +135,86 @@ class AppStore extends ChangeNotifier {
 
   void moveExercise(Session s, int from, int to) {
     if (to < 0 || to >= s.exercises.length) return;
+    // Moving breaks the pairing; unlink first so partners never end up apart.
+    _dissolve(s, s.exercises[from].supersetId);
+    _dissolve(s, s.exercises[to].supersetId);
     final e = s.exercises.removeAt(from);
     s.exercises.insert(to, e);
     _commit();
   }
+
+  // ---------- Supersets ----------
+
+  /// Links exercise [a] with [b]: [b] moves right after [a] and they alternate.
+  /// [keepInTemplate] also saves the pair to the session's rota.
+  void linkSuperset(Session s, int a, int b, {bool keepInTemplate = false}) {
+    if (a == b) return;
+    final first = s.exercises[a];
+    final second = s.exercises[b];
+    _dissolve(s, first.supersetId);
+    _dissolve(s, second.supersetId);
+    s.exercises.remove(second);
+    s.exercises.insert(s.exercises.indexOf(first) + 1, second);
+    final id = _newId();
+    first.supersetId = id;
+    second.supersetId = id;
+    if (keepInTemplate) {
+      final rota = rotaById(s.rotaId);
+      if (rota != null) {
+        _removeTemplatePairsWith(rota, first.name);
+        _removeTemplatePairsWith(rota, second.name);
+        rota.supersets.add([first.name, second.name]);
+        _learn(first.name);
+        _learn(second.name);
+      }
+    }
+    _commit();
+  }
+
+  /// Unlinks a superset in this session, and from the rota if [fromTemplate].
+  void unlinkSuperset(Session s, String supersetId, {bool fromTemplate = false}) {
+    if (fromTemplate) {
+      final rota = rotaById(s.rotaId);
+      if (rota != null) {
+        for (final e in s.exercises.where((e) => e.supersetId == supersetId)) {
+          _removeTemplatePairsWith(rota, e.name);
+        }
+      }
+    }
+    _dissolve(s, supersetId);
+    _commit();
+  }
+
+  bool isTemplatePair(Session s, String supersetId) {
+    final rota = rotaById(s.rotaId);
+    if (rota == null) return false;
+    final names = s.exercises.where((e) => e.supersetId == supersetId).map((e) => exerciseKey(e.name)).toSet();
+    return rota.supersets.any((p) => p.map(exerciseKey).toSet().containsAll(names));
+  }
+
+  void _applySuperset(Session s, List<String> pair) {
+    if (pair.length != 2) return;
+    final a = s.exercises.indexWhere((e) => exerciseKey(e.name) == exerciseKey(pair[0]) && e.supersetId == null);
+    final b = s.exercises.indexWhere((e) => exerciseKey(e.name) == exerciseKey(pair[1]) && e.supersetId == null);
+    if (a < 0 || b < 0) return;
+    final first = s.exercises[a];
+    final second = s.exercises[b];
+    s.exercises.remove(second);
+    s.exercises.insert(s.exercises.indexOf(first) + 1, second);
+    first.supersetId = second.supersetId = _newId();
+  }
+
+  void _dissolve(Session s, String? supersetId) {
+    if (supersetId == null) return;
+    for (final e in s.exercises) {
+      if (e.supersetId == supersetId) e.supersetId = null;
+    }
+  }
+
+  void _removeTemplatePairsWith(Rota rota, String name) =>
+      rota.supersets.removeWhere((p) => p.any((n) => exerciseKey(n) == exerciseKey(name)));
+
+  // ---------- Sets ----------
 
   void addSet(Session s, int exIndex, double weight, {bool dropSet = false}) {
     s.exercises[exIndex].sets.add(SetLog(weight: weight, dropSet: dropSet));
