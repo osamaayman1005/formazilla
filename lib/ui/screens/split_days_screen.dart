@@ -73,7 +73,7 @@ class _SplitDaysScreenState extends State<SplitDaysScreen> {
               padding: const EdgeInsets.symmetric(horizontal: AppSpace.screen),
               buildDefaultDragHandles: false,
               itemCount: days.length,
-              onReorder: store.reorderDays,
+              onReorderItem: store.reorderDays,
               itemBuilder: (context, i) {
                 final day = days[i];
                 final rotations = store.rotationsOf(day.id).length;

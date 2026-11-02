@@ -164,11 +164,11 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
-  /// Drag-to-reorder within the active split (ReorderableListView indexes).
+  /// Moves a day from [from] to [to] within the active split (final indexes).
   void reorderDays(int from, int to) {
     final list = days;
     final moved = list.removeAt(from);
-    list.insert(to > from ? to - 1 : to, moved);
+    list.insert(to, moved);
     for (var i = 0; i < list.length; i++) {
       list[i].position = i;
     }
@@ -447,7 +447,7 @@ class AppStore extends ChangeNotifier {
 
   void reorderRotationExercise(Rotation rotation, int from, int to) {
     final name = rotation.exercises.removeAt(from);
-    rotation.exercises.insert(to > from ? to - 1 : to, name);
+    rotation.exercises.insert(to, name);
     _commit();
   }
 

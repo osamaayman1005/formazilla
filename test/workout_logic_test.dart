@@ -70,7 +70,7 @@ void main() {
       expect(suggestDay(five, [done(r4, 1)]).id, 'd0');
     });
 
-
+    test('unfinished sessions are ignored', () {
       final open = Session(id: 'x', dayId: 'pull', rotationId: 'la', startedAt: DateTime(2026, 11, 5));
       expect(suggestDay(days, [done(pushA, 1), open]).id, 'pull');
     });

@@ -35,7 +35,7 @@ class RotationDetailScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: AppSpace.screen),
                     buildDefaultDragHandles: false,
                     itemCount: rotation.exercises.length,
-                    onReorder: (from, to) => store.reorderRotationExercise(rotation, from, to),
+                    onReorderItem: (from, to) => store.reorderRotationExercise(rotation, from, to),
                     itemBuilder: (context, i) {
                       final name = rotation.exercises[i];
                       return Dismissible(

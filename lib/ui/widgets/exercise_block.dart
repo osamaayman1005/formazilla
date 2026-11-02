@@ -165,7 +165,7 @@ class ExerciseBody extends StatelessWidget {
           ),
         _SlideSwap(
           child: hitRecord
-              ? Pill('New PR ${formatWeight(top!)}',
+              ? Pill('New PR ${formatWeight(top)}',
                   key: ValueKey('pr-$top'),
                   fill: AppColors.accent,
                   color: AppColors.onAccent,
