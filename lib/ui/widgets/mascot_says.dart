@@ -14,57 +14,66 @@ class MascotSays extends StatelessWidget {
   final String? caption;
 
   /// Height of the mascot next to the bubble.
-  static const _height = 84.0;
+  static const _height = 96.0;
+
+  /// Width / height of assets/mascot.png.
+  static const _aspect = 375 / 300;
+
+  /// Where his open mouth is in the image, as fractions of width and height.
+  /// The bubble's tail points exactly here.
+  static const _mouth = Offset(0.66, 0.55);
+
+  static const _tail = Size(30, 18);
 
   @override
   Widget build(BuildContext context) {
+    final mouth = Offset(_height * _aspect * _mouth.dx, _height * _mouth.dy);
     return Semantics(
       label: 'Formazilla says: $message',
       excludeSemantics: true,
-      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.4, end: 1),
-          duration: Motion.of(context, Motion.base),
-          curve: Motion.pop,
-          builder: (_, s, child) => Transform.scale(scale: s, child: child),
-          child: Image.asset('assets/mascot.png', height: _height),
-        ),
-        const SizedBox(width: 2),
-        Flexible(
-          child: EnterFromBelow(
-            delay: const Duration(milliseconds: 150),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: CustomPaint(size: const Size(10, 14), painter: _TailPainter(AppColors.card)),
-              ),
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 18, 12),
-                  decoration: const BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(18),
-                      topRight: Radius.circular(18),
-                      bottomRight: Radius.circular(18),
-                      bottomLeft: Radius.circular(6),
+      child: SizedBox(
+        height: _height,
+        child: Stack(clipBehavior: Clip.none, children: [
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.4, end: 1),
+            duration: Motion.of(context, Motion.base),
+            curve: Motion.pop,
+            builder: (_, s, child) => Transform.scale(scale: s, child: child),
+            child: Image.asset('assets/mascot.png', height: _height),
+          ),
+          // Bubble: tail tip sits in his mouth, bubble centred on it vertically.
+          Positioned(
+            left: mouth.dx,
+            right: 0,
+            top: mouth.dy - _height / 2,
+            height: _height,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: EnterFromBelow(
+                delay: const Duration(milliseconds: 150),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  CustomPaint(size: _tail, painter: _TailPainter(AppColors.card)),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(18)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                        if (caption != null) Text(caption!, style: AppText.small),
+                        Text(message, style: AppText.title.copyWith(fontSize: 22)),
+                      ]),
                     ),
                   ),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                    if (caption != null) Text(caption!, style: AppText.small),
-                    Text(message, style: AppText.title.copyWith(fontSize: 22)),
-                  ]),
-                ),
+                ]),
               ),
-            ]),
+            ),
           ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }
 
-/// Small triangle pointing from the bubble to the mascot.
+/// Speech-bubble tail pointing left, into the mascot's mouth.
 class _TailPainter extends CustomPainter {
   _TailPainter(this.color);
 
@@ -72,10 +81,11 @@ class _TailPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Tip on the left (in his mouth), wide base joining the bubble on the right.
     final path = Path()
-      ..moveTo(size.width, 0)
-      ..quadraticBezierTo(size.width * 0.4, size.height * 0.75, 0, size.height)
-      ..lineTo(size.width, size.height)
+      ..moveTo(size.width + 1, 0)
+      ..quadraticBezierTo(size.width * 0.45, size.height * 0.35, 0, size.height * 0.55)
+      ..quadraticBezierTo(size.width * 0.5, size.height * 0.75, size.width + 1, size.height)
       ..close();
     canvas.drawPath(path, Paint()..color = color);
   }

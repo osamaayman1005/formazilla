@@ -36,10 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.xl, AppSpace.screen, AppSpace.xl),
       children: [
-        MascotSays(
-          caption: formatDayDate(DateTime.now()),
-          message: active != null ? 'Let’s finish this!' : 'Ready to train?',
-        ),
+        MascotSays(message: active != null ? 'Let’s finish this!' : 'Ready to train?'),
         const SizedBox(height: AppSpace.xl),
         if (active != null)
           _ResumeCard(store: store, session: active)
