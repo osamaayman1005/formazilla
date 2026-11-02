@@ -48,7 +48,7 @@ class _SessionScreenState extends State<SessionScreen> {
     if (session == null || session.isFinished) {
       return const Scaffold(body: Center(child: Text('Workout closed', style: AppText.caption)));
     }
-    final rotas = store.rotasOf(session.dayId);
+    final rotations = store.rotationsOf(session.dayId);
     final done = session.exercises.where((e) => e.sets.isNotEmpty).length;
     final elapsed = DateTime.now().difference(session.startedAt);
 
@@ -56,11 +56,11 @@ class _SessionScreenState extends State<SessionScreen> {
       body: SafeArea(
         child: Column(children: [
           _Header(
-            title: store.rotaLabel(session.dayId, session.rotaId),
+            title: store.rotationLabel(session.dayId, session.rotationId),
             subtitle: '${formatDuration(elapsed)} · $done of ${session.exercises.length} done',
-            rotas: rotas,
-            rotaId: session.rotaId,
-            onRota: (r) => store.switchRota(session, r),
+            rotations: rotations,
+            rotationId: session.rotationId,
+            onRotation: (r) => store.switchRotation(session, r),
             onFinish: () => _finish(context, store, session),
           ),
           Expanded(
@@ -124,7 +124,7 @@ class _SessionScreenState extends State<SessionScreen> {
     }
     final duration = DateTime.now().difference(session.startedAt);
     final sets = session.setCount;
-    final label = store.rotaLabel(session.dayId, session.rotaId);
+    final label = store.rotationLabel(session.dayId, session.rotationId);
     final records = store.finishSession(session);
     HapticFeedback.mediumImpact();
     if (!context.mounted) return;
@@ -145,22 +145,22 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.title,
     required this.subtitle,
-    required this.rotas,
-    required this.rotaId,
-    required this.onRota,
+    required this.rotations,
+    required this.rotationId,
+    required this.onRotation,
     required this.onFinish,
   });
 
   final String title;
   final String subtitle;
-  final List<Rota> rotas;
-  final String rotaId;
-  final ValueChanged<Rota> onRota;
+  final List<Rotation> rotations;
+  final String rotationId;
+  final ValueChanged<Rotation> onRotation;
   final VoidCallback onFinish;
 
   @override
   Widget build(BuildContext context) {
-    final index = rotas.indexWhere((r) => r.id == rotaId);
+    final index = rotations.indexWhere((r) => r.id == rotationId);
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, AppSpace.sm, AppSpace.screen, AppSpace.md),
       child: Row(children: [
@@ -175,12 +175,12 @@ class _Header extends StatelessWidget {
             Text(subtitle, style: AppText.caption),
           ]),
         ),
-        if (rotas.length > 1) ...[
+        if (rotations.length > 1) ...[
           Segmented(
             compact: true,
-            options: [for (final r in rotas) r.name],
+            options: [for (final r in rotations) r.name],
             selected: index < 0 ? 0 : index,
-            onChanged: (i) => onRota(rotas[i]),
+            onChanged: (i) => onRotation(rotations[i]),
           ),
           const SizedBox(width: AppSpace.sm),
         ],

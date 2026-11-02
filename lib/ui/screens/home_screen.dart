@@ -10,7 +10,7 @@ import '../widgets/mascot_says.dart';
 import '../widgets/motion.dart';
 import '../widgets/store_scope.dart';
 
-/// Home: pick a day and rota (pre-selected from history, never forced) and start.
+/// Home: pick a day and rotation (pre-selected from history, never forced) and start.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,7 +21,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   /// null = follow the suggestion.
   String? _dayId;
-  String? _rotaId;
+  String? _rotationId;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final suggested = store.suggestedDay;
     final days = store.days;
     final dayId = days.any((d) => d.id == _dayId) ? _dayId! : suggested.id;
-    final rotas = store.rotasOf(dayId);
-    final rota = rotas.where((r) => r.id == _rotaId).firstOrNull ?? store.suggestedRota(dayId);
+    final rotations = store.rotationsOf(dayId);
+    final rotation = rotations.where((r) => r.id == _rotationId).firstOrNull ?? store.suggestedRotation(dayId);
     final active = store.activeSession;
 
     return ListView(
@@ -49,23 +49,23 @@ class _HomeScreenState extends State<HomeScreen> {
             lastDone: store.lastDoneAt,
             onSelect: (id) => setState(() {
               _dayId = id;
-              _rotaId = null;
+              _rotationId = null;
             }),
           ),
           const SizedBox(height: AppSpace.lg),
-          const SectionLabel('Rota'),
-          _RotaPicker(
-            rotas: rotas,
-            selected: rota,
-            suggested: store.suggestedRota(dayId),
-            onSelect: (r) => setState(() => _rotaId = r.id),
+          const SectionLabel('Rotation'),
+          _RotationPicker(
+            rotations: rotations,
+            selected: rotation,
+            suggested: store.suggestedRotation(dayId),
+            onSelect: (r) => setState(() => _rotationId = r.id),
           ),
           const SizedBox(height: AppSpace.lg),
-          if (rota != null) _StartCard(store: store, rota: rota),
+          if (rotation != null) _StartCard(store: store, rotation: rotation),
           const SizedBox(height: AppSpace.sm),
           Text(
             dayId == suggested.id
-                ? 'Suggested from your last workout. Tap any day or rota to switch.'
+                ? 'Suggested from your last workout. Tap any day or rotation to switch.'
                 : 'You picked ${store.dayById(dayId)?.name}. ${suggested.name} is still suggested.',
             style: AppText.small,
           ),
@@ -181,28 +181,28 @@ class _DaySwitcher extends StatelessWidget {
   }
 }
 
-class _RotaPicker extends StatelessWidget {
-  const _RotaPicker({required this.rotas, required this.selected, required this.suggested, required this.onSelect});
+class _RotationPicker extends StatelessWidget {
+  const _RotationPicker({required this.rotations, required this.selected, required this.suggested, required this.onSelect});
 
-  final List<Rota> rotas;
-  final Rota? selected;
-  final Rota? suggested;
-  final ValueChanged<Rota> onSelect;
+  final List<Rotation> rotations;
+  final Rotation? selected;
+  final Rotation? suggested;
+  final ValueChanged<Rotation> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    if (rotas.length <= 1) {
+    if (rotations.length <= 1) {
       return const Align(
         alignment: Alignment.centerLeft,
-        child: Pill('One rota · used every time', fill: AppColors.card, fontSize: 13),
+        child: Pill('One rotation · used every time', fill: AppColors.card, fontSize: 13),
       );
     }
-    final index = rotas.indexWhere((r) => r.id == selected?.id);
+    final index = rotations.indexWhere((r) => r.id == selected?.id);
     return Row(children: [
       Segmented(
-        options: [for (final r in rotas) r.name.isEmpty ? '•' : r.name],
+        options: [for (final r in rotations) r.name.isEmpty ? '•' : r.name],
         selected: index < 0 ? 0 : index,
-        onChanged: (i) => onSelect(rotas[i]),
+        onChanged: (i) => onSelect(rotations[i]),
       ),
       const SizedBox(width: AppSpace.md),
       if (suggested != null)
@@ -212,26 +212,26 @@ class _RotaPicker extends StatelessWidget {
 }
 
 class _StartCard extends StatelessWidget {
-  const _StartCard({required this.store, required this.rota});
+  const _StartCard({required this.store, required this.rotation});
 
   final AppStore store;
-  final Rota rota;
+  final Rotation rotation;
 
   @override
   Widget build(BuildContext context) {
-    final label = store.rotaLabel(rota.dayId, rota.id);
-    final preview = rota.exercises.take(4).join(', ');
-    final more = rota.exercises.length > 4 ? ' +${rota.exercises.length - 4}' : '';
+    final label = store.rotationLabel(rotation.dayId, rotation.id);
+    final preview = rotation.exercises.take(4).join(', ');
+    final more = rotation.exercises.length > 4 ? ' +${rotation.exercises.length - 4}' : '';
     return AppCard(
       padding: const EdgeInsets.all(AppSpace.xl),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: AppText.display),
         const SizedBox(height: 4),
-        Text(rota.exercises.isEmpty ? 'No exercises yet — add them as you go' : '$preview$more',
+        Text(rotation.exercises.isEmpty ? 'No exercises yet — add them as you go' : '$preview$more',
             style: AppText.caption),
         const SizedBox(height: AppSpace.lg),
         PrimaryButton('Start $label', onPressed: () {
-          final s = store.startSession(rota);
+          final s = store.startSession(rotation);
           openSession(context, s);
         }),
       ]),
@@ -247,7 +247,7 @@ class _ResumeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = store.rotaLabel(session.dayId, session.rotaId);
+    final label = store.rotationLabel(session.dayId, session.rotationId);
     final mins = DateTime.now().difference(session.startedAt).inMinutes;
     return Container(
       padding: const EdgeInsets.all(AppSpace.xl),

@@ -387,7 +387,7 @@ Future<void> showLinkSupersetSheet(BuildContext context, AppStore store, Session
               contentPadding: EdgeInsets.zero,
               value: keep,
               onChanged: (v) => setState(() => keep = v),
-              title: Text('Keep linked in the ${store.rotaLabel(session.dayId, session.rotaId)} template',
+              title: Text('Keep linked in the ${store.rotationLabel(session.dayId, session.rotationId)} template',
                   style: AppText.body),
             ),
             const SizedBox(height: AppSpace.sm),

@@ -7,37 +7,37 @@ import '../widgets/common.dart';
 import '../widgets/exercise_input.dart';
 import '../widgets/store_scope.dart';
 
-/// Edit one rota: reorder (drag), remove (swipe), add exercises, start it.
-class RotaDetailScreen extends StatelessWidget {
-  const RotaDetailScreen({super.key, required this.rotaId});
+/// Edit one rotation: reorder (drag), remove (swipe), add exercises, start it.
+class RotationDetailScreen extends StatelessWidget {
+  const RotationDetailScreen({super.key, required this.rotationId});
 
-  final String rotaId;
+  final String rotationId;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final rota = store.rotaById(rotaId);
-    if (rota == null) {
-      return const Scaffold(body: Center(child: Text('Rota deleted', style: AppText.caption)));
+    final rotation = store.rotationById(rotationId);
+    if (rotation == null) {
+      return const Scaffold(body: Center(child: Text('Rotation deleted', style: AppText.caption)));
     }
-    final label = store.rotaLabel(rota.dayId, rota.id);
-    final inRota = rota.exercises.map(exerciseKey).toSet();
-    final quickAdd = store.library.where((n) => !inRota.contains(exerciseKey(n))).take(6).toList();
+    final label = store.rotationLabel(rotation.dayId, rotation.id);
+    final inRotation = rotation.exercises.map(exerciseKey).toSet();
+    final quickAdd = store.library.where((n) => !inRotation.contains(exerciseKey(n))).take(6).toList();
 
     return Scaffold(
       appBar: AppBar(title: Text(label)),
       body: SafeArea(
         child: Column(children: [
           Expanded(
-            child: rota.exercises.isEmpty
+            child: rotation.exercises.isEmpty
                 ? const EmptyState(title: 'No exercises yet', body: 'Add exercises below. Drag to reorder, swipe to remove.')
                 : ReorderableListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: AppSpace.screen),
                     buildDefaultDragHandles: false,
-                    itemCount: rota.exercises.length,
-                    onReorder: (from, to) => store.reorderRotaExercise(rota, from, to),
+                    itemCount: rotation.exercises.length,
+                    onReorder: (from, to) => store.reorderRotationExercise(rotation, from, to),
                     itemBuilder: (context, i) {
-                      final name = rota.exercises[i];
+                      final name = rotation.exercises[i];
                       return Dismissible(
                         key: ValueKey('$i-$name'),
                         direction: DismissDirection.endToStart,
@@ -46,7 +46,7 @@ class RotaDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.only(right: 20),
                           child: const Icon(Icons.delete_outline, color: AppColors.danger),
                         ),
-                        onDismissed: (_) => store.removeRotaExercise(rota, i),
+                        onDismissed: (_) => store.removeRotationExercise(rotation, i),
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 6),
                           child: AppCard(
@@ -75,7 +75,7 @@ class RotaDetailScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.sm, AppSpace.screen, AppSpace.lg),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ExerciseInput(search: store.searchLibrary, onSubmit: (n) => store.addRotaExercise(rota, n)),
+              ExerciseInput(search: store.searchLibrary, onSubmit: (n) => store.addRotationExercise(rotation, n)),
               const SizedBox(height: AppSpace.sm),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final n in quickAdd)
@@ -83,7 +83,7 @@ class RotaDetailScreen extends StatelessWidget {
                     label: Text('+ $n'),
                     backgroundColor: AppColors.card,
                     side: BorderSide.none,
-                    onPressed: () => store.addRotaExercise(rota, n),
+                    onPressed: () => store.addRotationExercise(rotation, n),
                   ),
               ]),
               const SizedBox(height: AppSpace.md),
@@ -96,7 +96,7 @@ class RotaDetailScreen extends StatelessWidget {
                   ));
                   return;
                 }
-                openSession(context, store.startSession(rota), replace: true);
+                openSession(context, store.startSession(rotation), replace: true);
               }),
             ]),
           ),

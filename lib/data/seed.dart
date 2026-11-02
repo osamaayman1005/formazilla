@@ -5,8 +5,8 @@ import 'models.dart';
 
 const starterDays = ['Push', 'Pull', 'Legs'];
 
-/// day name -> rota name -> exercises in order. A single rota uses name "".
-const starterRotas = <String, Map<String, List<String>>>{
+/// day name -> rotation name -> exercises in order. A single rotation uses name "".
+const starterRotations = <String, Map<String, List<String>>>{
   'Push': {
     'A': [
       'Chest press',
@@ -72,25 +72,25 @@ const extraLibrary = [
 
 class SeedData {
   final List<Day> days;
-  final List<Rota> rotas;
+  final List<Rotation> rotations;
   final List<String> library;
-  const SeedData(this.days, this.rotas, this.library);
+  const SeedData(this.days, this.rotations, this.library);
 }
 
 SeedData buildSeed(String Function() newId) {
   final days = <Day>[];
-  final rotas = <Rota>[];
+  final rotations = <Rotation>[];
   final library = <String>[];
 
   for (var i = 0; i < starterDays.length; i++) {
     final day = Day(id: newId(), name: starterDays[i], position: i);
     days.add(day);
     var pos = 0;
-    starterRotas[day.name]!.forEach((rotaName, exercises) {
-      rotas.add(Rota(
+    starterRotations[day.name]!.forEach((rotationName, exercises) {
+      rotations.add(Rotation(
         id: newId(),
         dayId: day.id,
-        name: rotaName,
+        name: rotationName,
         position: pos++,
         isStarter: true,
         exercises: [...exercises],
@@ -101,5 +101,5 @@ SeedData buildSeed(String Function() newId) {
     });
   }
   library.addAll(extraLibrary.where((e) => !library.contains(e)));
-  return SeedData(days, rotas, library);
+  return SeedData(days, rotations, library);
 }

@@ -45,7 +45,7 @@ class HistoryScreen extends StatelessWidget {
                 child: Row(children: [
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(store.rotaLabel(s.dayId, s.rotaId), style: AppText.cardTitle),
+                      Text(store.rotationLabel(s.dayId, s.rotationId), style: AppText.cardTitle),
                       const SizedBox(height: 2),
                       Text(
                         '${formatDayDate(s.finishedAt!)} · ${formatDuration(s.finishedAt!.difference(s.startedAt))}',

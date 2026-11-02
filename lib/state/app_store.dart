@@ -19,10 +19,10 @@ class AppStore extends ChangeNotifier {
 
   static Future<AppStore> open(Storage storage) async {
     var data = await storage.load();
-    final store = AppStore._(storage, data ?? AppData(days: [], rotas: [], sessions: [], library: []));
+    final store = AppStore._(storage, data ?? AppData(days: [], rotations: [], sessions: [], library: []));
     if (data == null) {
       final seed = buildSeed(store._newId);
-      store._data = AppData(days: seed.days, rotas: seed.rotas, sessions: [], library: seed.library);
+      store._data = AppData(days: seed.days, rotations: seed.rotations, sessions: [], library: seed.library);
       await storage.save(store._data);
     }
     return store;
@@ -42,24 +42,24 @@ class AppStore extends ChangeNotifier {
   List<String> get library => _data.library;
 
   Day? dayById(String id) => _data.days.where((d) => d.id == id).firstOrNull;
-  Rota? rotaById(String id) => _data.rotas.where((r) => r.id == id).firstOrNull;
+  Rotation? rotationById(String id) => _data.rotations.where((r) => r.id == id).firstOrNull;
   Session? sessionById(String id) => _data.sessions.where((s) => s.id == id).firstOrNull;
 
-  List<Rota> rotasOf(String dayId) => logic.rotasForDay(dayId, _data.rotas);
+  List<Rotation> rotationsOf(String dayId) => logic.rotationsForDay(dayId, _data.rotations);
 
-  /// "Push A", or "Legs" for a single-rota day.
-  String rotaLabel(String dayId, String rotaId) {
+  /// "Push A", or "Legs" for a single-rotation day.
+  String rotationLabel(String dayId, String rotationId) {
     final day = dayById(dayId)?.name ?? 'Workout';
-    final rota = rotaById(rotaId);
-    if (rota == null || rota.name.isEmpty) return day;
-    return '$day ${rota.name}';
+    final rotation = rotationById(rotationId);
+    if (rotation == null || rotation.name.isEmpty) return day;
+    return '$day ${rotation.name}';
   }
 
   Session? get activeSession => _data.sessions.where((s) => !s.isFinished).firstOrNull;
   List<Session> get history => logic.finishedNewestFirst(_data.sessions);
 
   Day get suggestedDay => logic.suggestDay(days, _data.sessions);
-  Rota? suggestedRota(String dayId) => logic.suggestRota(dayId, _data.rotas, _data.sessions);
+  Rotation? suggestedRotation(String dayId) => logic.suggestRotation(dayId, _data.rotations, _data.sessions);
   DateTime? lastDoneAt(String dayId) => logic.lastDoneAt(dayId, _data.sessions);
 
   double? recordBefore(String exercise, String sessionId) =>
@@ -83,17 +83,17 @@ class AppStore extends ChangeNotifier {
 
   // ---------- Sessions ----------
 
-  Session startSession(Rota rota) {
+  Session startSession(Rotation rotation) {
     final existing = activeSession;
     if (existing != null) return existing;
     final s = Session(
       id: _newId(),
-      dayId: rota.dayId,
-      rotaId: rota.id,
+      dayId: rotation.dayId,
+      rotationId: rotation.id,
       startedAt: DateTime.now(),
-      exercises: rota.exercises.map((n) => SessionExercise(name: n)).toList(),
+      exercises: rotation.exercises.map((n) => SessionExercise(name: n)).toList(),
     );
-    for (final pair in rota.supersets) {
+    for (final pair in rotation.supersets) {
       _applySuperset(s, pair);
     }
     _data.sessions.add(s);
@@ -101,12 +101,12 @@ class AppStore extends ChangeNotifier {
     return s;
   }
 
-  /// Swap the rota mid-session: keeps logged exercises, adds missing ones.
-  void switchRota(Session s, Rota rota) {
-    s.rotaId = rota.id;
-    s.dayId = rota.dayId;
-    s.exercises.removeWhere((e) => e.sets.isEmpty && !rota.exercises.any((n) => exerciseKey(n) == exerciseKey(e.name)));
-    for (final n in rota.exercises) {
+  /// Swap the rotation mid-session: keeps logged exercises, adds missing ones.
+  void switchRotation(Session s, Rotation rotation) {
+    s.rotationId = rotation.id;
+    s.dayId = rotation.dayId;
+    s.exercises.removeWhere((e) => e.sets.isEmpty && !rotation.exercises.any((n) => exerciseKey(n) == exerciseKey(e.name)));
+    for (final n in rotation.exercises) {
       if (!s.exercises.any((e) => exerciseKey(e.name) == exerciseKey(n))) {
         s.exercises.add(SessionExercise(name: n));
       }
@@ -146,7 +146,7 @@ class AppStore extends ChangeNotifier {
   // ---------- Supersets ----------
 
   /// Links exercise [a] with [b]: [b] moves right after [a] and they alternate.
-  /// [keepInTemplate] also saves the pair to the session's rota.
+  /// [keepInTemplate] also saves the pair to the session's rotation.
   void linkSuperset(Session s, int a, int b, {bool keepInTemplate = false}) {
     if (a == b) return;
     final first = s.exercises[a];
@@ -159,11 +159,11 @@ class AppStore extends ChangeNotifier {
     first.supersetId = id;
     second.supersetId = id;
     if (keepInTemplate) {
-      final rota = rotaById(s.rotaId);
-      if (rota != null) {
-        _removeTemplatePairsWith(rota, first.name);
-        _removeTemplatePairsWith(rota, second.name);
-        rota.supersets.add([first.name, second.name]);
+      final rotation = rotationById(s.rotationId);
+      if (rotation != null) {
+        _removeTemplatePairsWith(rotation, first.name);
+        _removeTemplatePairsWith(rotation, second.name);
+        rotation.supersets.add([first.name, second.name]);
         _learn(first.name);
         _learn(second.name);
       }
@@ -171,13 +171,13 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
-  /// Unlinks a superset in this session, and from the rota if [fromTemplate].
+  /// Unlinks a superset in this session, and from the rotation if [fromTemplate].
   void unlinkSuperset(Session s, String supersetId, {bool fromTemplate = false}) {
     if (fromTemplate) {
-      final rota = rotaById(s.rotaId);
-      if (rota != null) {
+      final rotation = rotationById(s.rotationId);
+      if (rotation != null) {
         for (final e in s.exercises.where((e) => e.supersetId == supersetId)) {
-          _removeTemplatePairsWith(rota, e.name);
+          _removeTemplatePairsWith(rotation, e.name);
         }
       }
     }
@@ -186,10 +186,10 @@ class AppStore extends ChangeNotifier {
   }
 
   bool isTemplatePair(Session s, String supersetId) {
-    final rota = rotaById(s.rotaId);
-    if (rota == null) return false;
+    final rotation = rotationById(s.rotationId);
+    if (rotation == null) return false;
     final names = s.exercises.where((e) => e.supersetId == supersetId).map((e) => exerciseKey(e.name)).toSet();
-    return rota.supersets.any((p) => p.map(exerciseKey).toSet().containsAll(names));
+    return rotation.supersets.any((p) => p.map(exerciseKey).toSet().containsAll(names));
   }
 
   void _applySuperset(Session s, List<String> pair) {
@@ -211,8 +211,8 @@ class AppStore extends ChangeNotifier {
     }
   }
 
-  void _removeTemplatePairsWith(Rota rota, String name) =>
-      rota.supersets.removeWhere((p) => p.any((n) => exerciseKey(n) == exerciseKey(name)));
+  void _removeTemplatePairsWith(Rotation rotation, String name) =>
+      rotation.supersets.removeWhere((p) => p.any((n) => exerciseKey(n) == exerciseKey(name)));
 
   // ---------- Sets ----------
 
@@ -276,40 +276,40 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
-  // ---------- Templates (rotas) ----------
+  // ---------- Templates (rotations) ----------
 
-  Rota addRota(String dayId) {
-    final dayRotas = rotasOf(dayId);
-    if (dayRotas.length == 1 && dayRotas.first.name.isEmpty) dayRotas.first.name = 'A';
-    final rota = Rota(
+  Rotation addRotation(String dayId) {
+    final dayRotations = rotationsOf(dayId);
+    if (dayRotations.length == 1 && dayRotations.first.name.isEmpty) dayRotations.first.name = 'A';
+    final rotation = Rotation(
       id: _newId(),
       dayId: dayId,
-      name: logic.nextRotaName(rotasOf(dayId)),
-      position: dayRotas.length,
+      name: logic.nextRotationName(rotationsOf(dayId)),
+      position: dayRotations.length,
     );
-    _data.rotas.add(rota);
+    _data.rotations.add(rotation);
     _commit();
-    return rota;
+    return rotation;
   }
 
-  Rota duplicateRota(Rota source) {
-    final copy = addRota(source.dayId);
+  Rotation duplicateRotation(Rotation source) {
+    final copy = addRotation(source.dayId);
     copy.exercises = [...source.exercises];
     _commit();
     return copy;
   }
 
-  void renameRota(Rota rota, String name) {
-    rota.name = name.trim();
+  void renameRotation(Rotation rotation, String name) {
+    rotation.name = name.trim();
     _commit();
   }
 
-  /// A day always keeps at least one rota. Returns false when refused.
-  bool deleteRota(Rota rota) {
-    final dayRotas = rotasOf(rota.dayId);
-    if (dayRotas.length <= 1) return false;
-    _data.rotas.remove(rota);
-    final left = rotasOf(rota.dayId);
+  /// A day always keeps at least one rotation. Returns false when refused.
+  bool deleteRotation(Rotation rotation) {
+    final dayRotations = rotationsOf(rotation.dayId);
+    if (dayRotations.length <= 1) return false;
+    _data.rotations.remove(rotation);
+    final left = rotationsOf(rotation.dayId);
     for (var i = 0; i < left.length; i++) {
       left[i].position = i;
     }
@@ -318,22 +318,22 @@ class AppStore extends ChangeNotifier {
     return true;
   }
 
-  void addRotaExercise(Rota rota, String name) {
+  void addRotationExercise(Rotation rotation, String name) {
     final clean = name.trim();
     if (clean.isEmpty) return;
     _learn(clean);
-    rota.exercises.add(clean);
+    rotation.exercises.add(clean);
     _commit();
   }
 
-  void removeRotaExercise(Rota rota, int index) {
-    rota.exercises.removeAt(index);
+  void removeRotationExercise(Rotation rotation, int index) {
+    rotation.exercises.removeAt(index);
     _commit();
   }
 
-  void reorderRotaExercise(Rota rota, int from, int to) {
-    final name = rota.exercises.removeAt(from);
-    rota.exercises.insert(to > from ? to - 1 : to, name);
+  void reorderRotationExercise(Rotation rotation, int from, int to) {
+    final name = rotation.exercises.removeAt(from);
+    rotation.exercises.insert(to > from ? to - 1 : to, name);
     _commit();
   }
 

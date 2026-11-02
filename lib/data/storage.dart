@@ -9,28 +9,31 @@ import 'package:path_provider/path_provider.dart';
 
 import 'models.dart';
 
-const schemaVersion = 1;
+/// v2 renamed "rota" to "rotation" in stored keys; v1 files still load.
+const schemaVersion = 2;
 
 /// Everything the app stores.
 class AppData {
   List<Day> days;
-  List<Rota> rotas;
+  List<Rotation> rotations;
   List<Session> sessions;
   List<String> library;
 
-  AppData({required this.days, required this.rotas, required this.sessions, required this.library});
+  AppData({required this.days, required this.rotations, required this.sessions, required this.library});
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': schemaVersion,
         'days': days.map((d) => d.toJson()).toList(),
-        'rotas': rotas.map((r) => r.toJson()).toList(),
+        'rotations': rotations.map((r) => r.toJson()).toList(),
         'sessions': sessions.map((s) => s.toJson()).toList(),
         'library': library,
       };
 
   factory AppData.fromJson(Map<String, dynamic> j) => AppData(
         days: (j['days'] as List).map((e) => Day.fromJson(e as Map<String, dynamic>)).toList(),
-        rotas: (j['rotas'] as List).map((e) => Rota.fromJson(e as Map<String, dynamic>)).toList(),
+        rotations: ((j['rotations'] ?? j['rotas']) as List) // 'rotas' = schema v1
+            .map((e) => Rotation.fromJson(e as Map<String, dynamic>))
+            .toList(),
         sessions: (j['sessions'] as List).map((e) => Session.fromJson(e as Map<String, dynamic>)).toList(),
         library: (j['library'] as List).cast<String>().toList(),
       );

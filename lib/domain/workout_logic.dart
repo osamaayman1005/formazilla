@@ -12,9 +12,9 @@ List<Session> finishedNewestFirst(Iterable<Session> sessions) {
   return list;
 }
 
-/// Rotas of a day, in display order.
-List<Rota> rotasForDay(String dayId, Iterable<Rota> rotas) =>
-    rotas.where((r) => r.dayId == dayId).toList()..sort((a, b) => a.position.compareTo(b.position));
+/// Rotations of a day, in display order.
+List<Rotation> rotationsForDay(String dayId, Iterable<Rotation> rotations) =>
+    rotations.where((r) => r.dayId == dayId).toList()..sort((a, b) => a.position.compareTo(b.position));
 
 /// The day after the last finished session's day. First day when no history.
 Day suggestDay(List<Day> days, Iterable<Session> sessions) {
@@ -26,16 +26,16 @@ Day suggestDay(List<Day> days, Iterable<Session> sessions) {
   return ordered[(lastIndex + 1) % ordered.length];
 }
 
-/// For a day: its only rota, or the one after the rota used last time.
-Rota? suggestRota(String dayId, Iterable<Rota> rotas, Iterable<Session> sessions) {
-  final dayRotas = rotasForDay(dayId, rotas);
-  if (dayRotas.isEmpty) return null;
-  if (dayRotas.length == 1) return dayRotas.first;
+/// For a day: its only rotation, or the one after the rotation used last time.
+Rotation? suggestRotation(String dayId, Iterable<Rotation> rotations, Iterable<Session> sessions) {
+  final dayRotations = rotationsForDay(dayId, rotations);
+  if (dayRotations.isEmpty) return null;
+  if (dayRotations.length == 1) return dayRotations.first;
   final last = finishedNewestFirst(sessions).where((s) => s.dayId == dayId).firstOrNull;
-  if (last == null) return dayRotas.first;
-  final i = dayRotas.indexWhere((r) => r.id == last.rotaId);
-  if (i < 0) return dayRotas.first;
-  return dayRotas[(i + 1) % dayRotas.length];
+  if (last == null) return dayRotations.first;
+  final i = dayRotations.indexWhere((r) => r.id == last.rotationId);
+  if (i < 0) return dayRotations.first;
+  return dayRotations[(i + 1) % dayRotations.length];
 }
 
 /// When a day was last trained, or null.
@@ -156,14 +156,14 @@ List<ExerciseSummary> exerciseSummaries(Iterable<Session> sessions) {
   return map.values.toList()..sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
 }
 
-/// Name for a new rota on a day: "B" after "A", etc.
-String nextRotaName(List<Rota> dayRotas) {
+/// Name for a new rotation on a day: "B" after "A", etc.
+String nextRotationName(List<Rotation> dayRotations) {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  final used = dayRotas.map((r) => r.name).toSet();
+  final used = dayRotations.map((r) => r.name).toSet();
   for (final c in letters.split('')) {
     if (!used.contains(c)) return c;
   }
-  return '${dayRotas.length + 1}';
+  return '${dayRotations.length + 1}';
 }
 
 /// Autocomplete: prefix matches first, then contains, without duplicates.

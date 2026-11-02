@@ -30,14 +30,14 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 | Type every number, every set | Tap last time's weight — **1 tap per set** |
 | Scroll back to find what you lifted | "Last: 40 · 55 · 65 · 75" shown on every exercise |
 | A separate PRs tab you update by hand | **PRs detected automatically**, highlighted live |
-| Remember whether today is Push A or B | **Next day and rota suggested** — switch with one tap |
+| Remember whether today is Push A or B | **Next day and rotation suggested** — switch with one tap |
 | One device, one sheet | Fully offline on your phone, JSON backup anytime |
 
 ## ✨ Features
 
 - **⚡ One-tap logging** — last session's weights appear as dashed "ghost" chips. Tap one to log it. `+` repeats your previous set.
 - **🏆 Automatic PRs** — a set that beats your all-time best turns navy and the exercise shows **New PR**. Home lists your recent PRs with the gain.
-- **🔁 PPL with rotas** — Push A / Push B, Pull A / Pull B, a single Legs day… any mix. Days cycle in order, rotas alternate.
+- **🔁 PPL with rotations** — Push A / Push B, Pull A / Pull B, a single Legs day… any mix. Days cycle in order, rotations alternate.
 - **🧭 Suggest, never enforce** — yesterday was Push, so Pull is pre-selected. Want Legs instead? One tap.
 - **🔗 Supersets** — link two exercises; they sit in one card as A and B, and "Next up" alternates for you. Save the pair to the template so it's linked every time.
 - **📸 PR share card** — hit a PR, tap Share: a story-size navy card with your number, gain and progress bars, ready for WhatsApp or Instagram.
@@ -54,10 +54,10 @@ Designed in Figma first — [open the design file](https://www.figma.com/design/
 
 | Screen | What it does |
 | --- | --- |
-| **Home** | Day switcher (Push · Pull · Legs), A/B rota toggle, start or resume a workout, recent PRs |
+| **Home** | Day switcher (Push · Pull · Legs), A/B rotation toggle, start or resume a workout, recent PRs |
 | **Session** | One card per exercise with set chips, ghost values, live PR badge, autocomplete to add exercises |
 | **Progress** | Every exercise with its PR → chart of top sets and full history |
-| **Templates** | Your rotas per day; add, rename, duplicate, reorder by drag |
+| **Templates** | Your rotations per day; add, rename, duplicate, reorder by drag |
 | **History** | Past workouts, details, delete, backup |
 
 ## 🧠 How the next workout is picked
@@ -68,9 +68,9 @@ flowchart LR
     B -->|Push| C[Suggest Pull]
     B -->|Pull| D[Suggest Legs]
     B -->|Legs| E[Suggest Push]
-    C & D & E --> F{Day has 2+ rotas?}
-    F -->|No| G[Use its only rota]
-    F -->|Yes| H[Use the rota after the one done last time<br/>A → B → A]
+    C & D & E --> F{Day has 2+ rotations?}
+    F -->|No| G[Use its only rotation]
+    F -->|Yes| H[Use the rotation after the one done last time<br/>A → B → A]
     G & H --> I[Pre-selected on Home<br/>tap anything to change]
 ```
 
@@ -81,7 +81,7 @@ Small, layered, and easy to change. Business rules are plain Dart with unit test
 ```mermaid
 flowchart TB
     UI["ui/ — screens & widgets<br/>reads via StoreScope"] --> State["state/app_store.dart<br/>ChangeNotifier · only place data changes"]
-    State --> Domain["domain/workout_logic.dart<br/>pure rules: next day/rota, PRs, last-time values"]
+    State --> Domain["domain/workout_logic.dart<br/>pure rules: next day/rotation, PRs, last-time values"]
     State --> Data["data/ — models · seed · storage"]
     Domain --> Data
     Data --> Disk[("formazilla.json<br/>on device")]
@@ -138,6 +138,7 @@ If a build fails, the workflow opens an issue with the error log. Doc-only chang
 
 - [x] Supersets
 - [x] PR share card
+- [ ] Custom splits: Upper/Lower, Bro split, Full body or your own ([plan](docs/plans/custom-splits.md))
 - [ ] Import history from the old Google Sheet (`40--55--65--75`, `30x3`, `80ds`)
 - [ ] Optional reps per set
 - [ ] Rest timer between sets

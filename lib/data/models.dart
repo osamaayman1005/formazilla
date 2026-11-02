@@ -14,10 +14,10 @@ class Day {
       Day(id: j['id'] as String, name: j['name'] as String, position: j['position'] as int);
 }
 
-class Rota {
+class Rotation {
   final String id;
   final String dayId;
-  String name; // "A", "B" ... or "" when the day has a single rota
+  String name; // "A", "B" ... or "" when the day has a single rotation
   int position;
   bool isStarter;
   List<String> exercises;
@@ -25,7 +25,7 @@ class Rota {
   /// Pairs of exercise names that are always done as a superset.
   List<List<String>> supersets;
 
-  Rota({
+  Rotation({
     required this.id,
     required this.dayId,
     required this.name,
@@ -46,7 +46,7 @@ class Rota {
         'supersets': supersets,
       };
 
-  factory Rota.fromJson(Map<String, dynamic> j) => Rota(
+  factory Rotation.fromJson(Map<String, dynamic> j) => Rotation(
         id: j['id'] as String,
         dayId: j['dayId'] as String,
         name: j['name'] as String,
@@ -96,7 +96,7 @@ class SessionExercise {
 class Session {
   final String id;
   String dayId;
-  String rotaId;
+  String rotationId;
   DateTime startedAt;
   DateTime? finishedAt;
   List<SessionExercise> exercises;
@@ -104,7 +104,7 @@ class Session {
   Session({
     required this.id,
     required this.dayId,
-    required this.rotaId,
+    required this.rotationId,
     required this.startedAt,
     this.finishedAt,
     List<SessionExercise>? exercises,
@@ -117,7 +117,7 @@ class Session {
   Map<String, dynamic> toJson() => {
         'id': id,
         'dayId': dayId,
-        'rotaId': rotaId,
+        'rotationId': rotationId,
         'startedAt': startedAt.toIso8601String(),
         'finishedAt': finishedAt?.toIso8601String(),
         'exercises': exercises.map((e) => e.toJson()).toList(),
@@ -126,7 +126,7 @@ class Session {
   factory Session.fromJson(Map<String, dynamic> j) => Session(
         id: j['id'] as String,
         dayId: j['dayId'] as String,
-        rotaId: j['rotaId'] as String,
+        rotationId: (j['rotationId'] ?? j['rotaId']) as String, // 'rotaId' = schema v1
         startedAt: DateTime.parse(j['startedAt'] as String),
         finishedAt: j['finishedAt'] == null ? null : DateTime.parse(j['finishedAt'] as String),
         exercises: (j['exercises'] as List)

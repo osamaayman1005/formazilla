@@ -8,18 +8,18 @@ final pull = Day(id: 'pull', name: 'Pull', position: 1);
 final legs = Day(id: 'legs', name: 'Legs', position: 2);
 final days = [push, pull, legs];
 
-final pushA = Rota(id: 'pa', dayId: 'push', name: 'A', position: 0);
-final pushB = Rota(id: 'pb', dayId: 'push', name: 'B', position: 1);
-final pullA = Rota(id: 'la', dayId: 'pull', name: 'A', position: 0);
-final pullB = Rota(id: 'lb', dayId: 'pull', name: 'B', position: 1);
-final legsOnly = Rota(id: 'lg', dayId: 'legs', name: '', position: 0);
-final rotas = [pushA, pushB, pullA, pullB, legsOnly];
+final pushA = Rotation(id: 'pa', dayId: 'push', name: 'A', position: 0);
+final pushB = Rotation(id: 'pb', dayId: 'push', name: 'B', position: 1);
+final pullA = Rotation(id: 'la', dayId: 'pull', name: 'A', position: 0);
+final pullB = Rotation(id: 'lb', dayId: 'pull', name: 'B', position: 1);
+final legsOnly = Rotation(id: 'lg', dayId: 'legs', name: '', position: 0);
+final rotations = [pushA, pushB, pullA, pullB, legsOnly];
 
 int _n = 0;
-Session done(Rota r, int day, [Map<String, List<double>> sets = const {}]) => Session(
+Session done(Rotation r, int day, [Map<String, List<double>> sets = const {}]) => Session(
       id: 's${_n++}',
       dayId: r.dayId,
-      rotaId: r.id,
+      rotationId: r.id,
       startedAt: DateTime(2026, 11, day, 10),
       finishedAt: DateTime(2026, 11, day, 11),
       exercises: [
@@ -30,9 +30,9 @@ Session done(Rota r, int day, [Map<String, List<double>> sets = const {}]) => Se
 
 void main() {
   group('next session suggestion', () {
-    test('no history suggests the first day and first rota', () {
+    test('no history suggests the first day and first rotation', () {
       expect(suggestDay(days, []).id, 'push');
-      expect(suggestRota('push', rotas, [])!.id, 'pa');
+      expect(suggestRotation('push', rotations, [])!.id, 'pa');
     });
 
     test('day after the last workout', () {
@@ -41,13 +41,13 @@ void main() {
       expect(suggestDay(days, [done(legsOnly, 3)]).id, 'push');
     });
 
-    test('rota alternates A -> B -> A', () {
-      expect(suggestRota('pull', rotas, [done(pullA, 1)])!.id, 'lb');
-      expect(suggestRota('pull', rotas, [done(pullA, 1), done(pullB, 4)])!.id, 'la');
+    test('rotation alternates A -> B -> A', () {
+      expect(suggestRotation('pull', rotations, [done(pullA, 1)])!.id, 'lb');
+      expect(suggestRotation('pull', rotations, [done(pullA, 1), done(pullB, 4)])!.id, 'la');
     });
 
-    test('single rota is always used', () {
-      expect(suggestRota('legs', rotas, [done(legsOnly, 1)])!.id, 'lg');
+    test('single rotation is always used', () {
+      expect(suggestRotation('legs', rotations, [done(legsOnly, 1)])!.id, 'lg');
     });
 
     test('skipping the suggestion moves the cycle on from what was done', () {
@@ -56,7 +56,7 @@ void main() {
     });
 
     test('unfinished sessions are ignored', () {
-      final open = Session(id: 'x', dayId: 'pull', rotaId: 'la', startedAt: DateTime(2026, 11, 5));
+      final open = Session(id: 'x', dayId: 'pull', rotationId: 'la', startedAt: DateTime(2026, 11, 5));
       expect(suggestDay(days, [done(pushA, 1), open]).id, 'pull');
     });
   });
@@ -104,9 +104,9 @@ void main() {
   });
 
   group('helpers', () {
-    test('next rota name', () {
-      expect(nextRotaName([pushA]), 'B');
-      expect(nextRotaName([pushA, pushB]), 'C');
+    test('next rotation name', () {
+      expect(nextRotationName([pushA]), 'B');
+      expect(nextRotationName([pushA, pushB]), 'C');
     });
 
     test('search puts prefix matches first', () {

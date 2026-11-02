@@ -88,7 +88,7 @@ class PrimaryButton extends StatelessWidget {
   }
 }
 
-/// Full-width dashed outline button, e.g. "+ New rota".
+/// Full-width dashed outline button, e.g. "+ New rotation".
 class DashedButton extends StatelessWidget {
   const DashedButton(this.label, {super.key, required this.onPressed});
 
@@ -156,7 +156,7 @@ class DashedPainter extends CustomPainter {
   bool shouldRepaint(DashedPainter old) => old.color != color || old.radius != radius;
 }
 
-/// Two-or-more option toggle, e.g. rota A | B.
+/// Two-or-more option toggle, e.g. rotation A | B.
 class Segmented extends StatelessWidget {
   const Segmented({super.key, required this.options, required this.selected, required this.onChanged, this.compact = false});
 
@@ -177,7 +177,7 @@ class Segmented extends StatelessWidget {
             Semantics(
               button: true,
               selected: i == selected,
-              label: 'Rota ${options[i]}',
+              label: 'Rotation ${options[i]}',
               child: GestureDetector(
                 onTap: () => onChanged(i),
                 child: AnimatedContainer(
