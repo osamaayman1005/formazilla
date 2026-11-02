@@ -13,7 +13,8 @@ class MascotSays extends StatelessWidget {
   /// Small line above the message, e.g. the date.
   final String? caption;
 
-  static const _avatar = 56.0;
+  /// Height of the mascot next to the bubble.
+  static const _height = 84.0;
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +27,9 @@ class MascotSays extends StatelessWidget {
           duration: Motion.of(context, Motion.base),
           curve: Motion.pop,
           builder: (_, s, child) => Transform.scale(scale: s, child: child),
-          child: ClipOval(
-            child: Image.asset('assets/mascot_head.png', width: _avatar, height: _avatar),
-          ),
+          child: Image.asset('assets/mascot.png', height: _height),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 2),
         Flexible(
           child: EnterFromBelow(
             delay: const Duration(milliseconds: 150),
