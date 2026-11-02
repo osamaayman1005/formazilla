@@ -6,6 +6,7 @@ import 'ui/screens/history_screen.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/progress_screen.dart';
 import 'ui/screens/templates_screen.dart';
+import 'ui/widgets/kaiju.dart';
 import 'ui/widgets/store_scope.dart';
 
 class FormazillaApp extends StatelessWidget {
@@ -51,33 +52,53 @@ class _AppShellState extends State<AppShell> {
           children: const [HomeScreen(), HistoryScreen(), ProgressScreen(), TemplatesScreen()],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.chip))),
+      bottomNavigationBar: _BottomNav(
+        tabs: _tabs,
+        icons: _icons,
+        selected: _tab,
+        onSelect: (i) => setState(() => _tab = i),
+      ),
+    );
+  }
+}
+
+/// Bottom bar with a spiked top edge (the mascot's back).
+class _BottomNav extends StatelessWidget {
+  const _BottomNav({required this.tabs, required this.icons, required this.selected, required this.onSelect});
+
+  final List<String> tabs;
+  final List<IconData> icons;
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      const SpikeEdge(),
+      ColoredBox(
+        color: AppColors.card,
         child: SafeArea(
           top: false,
           child: SizedBox(
             height: 64,
             child: Row(children: [
-              for (var i = 0; i < _tabs.length; i++)
+              for (var i = 0; i < tabs.length; i++)
                 Expanded(
                   child: Semantics(
-                    selected: i == _tab,
+                    selected: i == selected,
                     button: true,
                     child: InkWell(
-                      onTap: () => setState(() => _tab = i),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(_icons[i], size: 22, color: i == _tab ? AppColors.accentLight : AppColors.muted),
-                          const SizedBox(height: 4),
-                          Text(_tabs[i],
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: i == _tab ? FontWeight.w600 : FontWeight.w400,
-                                color: i == _tab ? AppColors.text : AppColors.muted,
-                              )),
-                        ],
-                      ),
+                      onTap: () => onSelect(i),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(icons[i], size: 22, color: i == selected ? AppColors.accentLight : AppColors.muted),
+                        const SizedBox(height: 4),
+                        Text(tabs[i],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: i == selected ? FontWeight.w600 : FontWeight.w400,
+                              color: i == selected ? AppColors.text : AppColors.muted,
+                            )),
+                      ]),
                     ),
                   ),
                 ),
@@ -85,6 +106,6 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-    );
+    ]);
   }
 }

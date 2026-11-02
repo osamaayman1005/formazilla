@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import 'common.dart';
+import 'kaiju.dart';
 import 'motion.dart';
 
 /// done   = logged set
@@ -154,7 +155,17 @@ class _SetChipState extends State<SetChip> with TickerProviderStateMixin {
                 ? [BoxShadow(color: AppColors.accentLight.withValues(alpha: 0.8 * (1 - t)), spreadRadius: 14 * t)]
                 : const [],
           ),
-          child: child,
+          // Claw scratches draw across the chip, then fade.
+          child: CustomPaint(
+            foregroundPainter: on
+                ? ClawPainter(
+                    color: AppColors.onAccent.withValues(alpha: 0.9 * (1 - t)),
+                    progress: (t * 2.5).clamp(0.0, 1.0),
+                    strokeWidth: 2.5,
+                  )
+                : null,
+            child: child,
+          ),
         );
       },
       child: body,

@@ -33,13 +33,16 @@ class AppCard extends StatelessWidget {
 
 /// Small rounded label, e.g. "New PR 80", "Next", "Starter".
 class Pill extends StatelessWidget {
-  const Pill(this.text, {super.key, this.fill, this.color = AppColors.muted, this.outline, this.fontSize = 12});
+  const Pill(this.text, {super.key, this.fill, this.color = AppColors.muted, this.outline, this.fontSize = 12, this.leading});
 
   final String text;
   final Color? fill;
   final Color color;
   final Color? outline;
   final double fontSize;
+
+  /// Optional small icon before the text (e.g. a claw mark on PR badges).
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +53,10 @@ class Pill extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.pill),
         border: outline == null ? null : Border.all(color: outline!),
       ),
-      child: Text(text, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: color)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (leading != null) ...[leading!, const SizedBox(width: 5)],
+        Text(text, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: color)),
+      ]),
     );
   }
 }

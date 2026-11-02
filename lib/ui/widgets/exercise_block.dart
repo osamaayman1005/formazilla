@@ -11,6 +11,7 @@ import '../../data/models.dart';
 import '../../domain/workout_logic.dart' show isNewRecord, supersetNext, supersetRound;
 import '../../state/app_store.dart';
 import 'common.dart';
+import 'kaiju.dart';
 import 'keypad_sheet.dart';
 import 'motion.dart';
 import 'set_chip.dart';
@@ -165,7 +166,10 @@ class ExerciseBody extends StatelessWidget {
         _SlideSwap(
           child: hitRecord
               ? Pill('New PR ${formatWeight(top!)}',
-                  key: ValueKey('pr-$top'), fill: AppColors.accent, color: AppColors.onAccent)
+                  key: ValueKey('pr-$top'),
+                  fill: AppColors.accent,
+                  color: AppColors.onAccent,
+                  leading: const ClawMark(size: 12))
               : best != null
                   ? Text('PR ${formatWeight(best)}',
                       key: const ValueKey('pr-old'), style: AppText.small.copyWith(fontWeight: FontWeight.w500))

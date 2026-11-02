@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../domain/workout_logic.dart' show RecordCardData;
+import 'kaiju.dart';
 
 /// Story-sized (9:16) image card for a personal record. Laid out at 360×640
 /// logical pixels; captured at 3× it becomes a 1080×1920 PNG.
@@ -38,8 +39,12 @@ class PrShareCard extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(AppRadius.pill)),
-          child: const Text('NEW PERSONAL RECORD',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: AppColors.onAccent)),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            ClawMark(size: 13),
+            SizedBox(width: 6),
+            Text('NEW PERSONAL RECORD',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: AppColors.onAccent)),
+          ]),
         ),
         const SizedBox(height: 14),
         Text(data.exercise,
