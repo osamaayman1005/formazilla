@@ -9,20 +9,32 @@ import 'package:path_provider/path_provider.dart';
 
 import 'models.dart';
 
-/// v2 renamed "rota" to "rotation" in stored keys; v1 files still load.
-const schemaVersion = 2;
+/// v2 renamed "rota" to "rotation"; v3 added splits. Older files still load
+/// (the store migrates them on open).
+const schemaVersion = 3;
 
 /// Everything the app stores.
 class AppData {
+  List<Split> splits;
+  String? activeSplitId;
   List<Day> days;
   List<Rotation> rotations;
   List<Session> sessions;
   List<String> library;
 
-  AppData({required this.days, required this.rotations, required this.sessions, required this.library});
+  AppData({
+    List<Split>? splits,
+    this.activeSplitId,
+    required this.days,
+    required this.rotations,
+    required this.sessions,
+    required this.library,
+  }) : splits = splits ?? [];
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': schemaVersion,
+        'splits': splits.map((x) => x.toJson()).toList(),
+        'activeSplitId': activeSplitId,
         'days': days.map((d) => d.toJson()).toList(),
         'rotations': rotations.map((r) => r.toJson()).toList(),
         'sessions': sessions.map((s) => s.toJson()).toList(),
@@ -30,6 +42,8 @@ class AppData {
       };
 
   factory AppData.fromJson(Map<String, dynamic> j) => AppData(
+        splits: ((j['splits'] as List?) ?? const []).map((e) => Split.fromJson(e as Map<String, dynamic>)).toList(),
+        activeSplitId: j['activeSplitId'] as String?,
         days: (j['days'] as List).map((e) => Day.fromJson(e as Map<String, dynamic>)).toList(),
         rotations: ((j['rotations'] ?? j['rotas']) as List) // 'rotas' = schema v1
             .map((e) => Rotation.fromJson(e as Map<String, dynamic>))

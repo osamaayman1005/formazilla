@@ -1,6 +1,6 @@
 # Plan: custom splits (any rotation, not just Push / Pull / Legs)
 
-Status: **planned, not started.** Owner: Osama. Written 2 Nov 2026.
+Status: **phases 1–4 done** (2 Nov 2026): splits model + migration, scoped suggestion, presets, switch / edit days, scrolling day picker. Phase 5 (first-launch split picker) is still open.
 
 ## Goal
 

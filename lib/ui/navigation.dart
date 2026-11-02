@@ -9,6 +9,7 @@ import 'screens/record_card_screen.dart';
 import 'screens/rotation_detail_screen.dart';
 import 'screens/session_detail_screen.dart';
 import 'screens/session_screen.dart';
+import 'screens/split_days_screen.dart';
 
 Future<void> openSession(BuildContext context, Session s, {bool replace = false}) {
   final route = MaterialPageRoute<void>(builder: (_) => SessionScreen(sessionId: s.id));
@@ -31,3 +32,6 @@ Future<void> openRecordCard(BuildContext context, String exercise,
   );
   return replace ? Navigator.of(context).pushReplacement(route) : Navigator.of(context).push(route);
 }
+
+Future<void> openSplitDays(BuildContext context) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SplitDaysScreen()));

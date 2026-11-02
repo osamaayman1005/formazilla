@@ -1,17 +1,47 @@
 // Plain data classes for Formazilla. Weights are unitless numbers stored
 // exactly as entered.
 
-class Day {
+/// The cycle you follow, e.g. "Push Pull Legs" or "Upper Lower".
+/// One split is active at a time; switching never deletes anything.
+class Split {
   final String id;
   String name;
   int position;
+  bool archived;
 
-  Day({required this.id, required this.name, required this.position});
+  Split({required this.id, required this.name, required this.position, this.archived = false});
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'position': position};
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'position': position, 'archived': archived};
 
-  factory Day.fromJson(Map<String, dynamic> j) =>
-      Day(id: j['id'] as String, name: j['name'] as String, position: j['position'] as int);
+  factory Split.fromJson(Map<String, dynamic> j) => Split(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        position: j['position'] as int,
+        archived: (j['archived'] as bool?) ?? false,
+      );
+}
+
+/// One step in a split's cycle (Push, Upper, Chest…). Archived days are hidden
+/// but kept so past workouts still show their name.
+class Day {
+  final String id;
+  String splitId;
+  String name;
+  int position;
+  bool archived;
+
+  Day({required this.id, required this.name, required this.position, this.splitId = '', this.archived = false});
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'splitId': splitId, 'name': name, 'position': position, 'archived': archived};
+
+  factory Day.fromJson(Map<String, dynamic> j) => Day(
+        id: j['id'] as String,
+        splitId: (j['splitId'] as String?) ?? '', // '' = schema v2, set by migration
+        name: j['name'] as String,
+        position: j['position'] as int,
+        archived: (j['archived'] as bool?) ?? false,
+      );
 }
 
 class Rotation {

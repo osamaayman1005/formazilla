@@ -55,7 +55,22 @@ void main() {
       expect(suggestDay(days, [done(pushA, 1), done(legsOnly, 2)]).id, 'push');
     });
 
-    test('unfinished sessions are ignored', () {
+    test('only workouts from the active split count', () {
+      final upper = Rotation(id: 'up', dayId: 'upper', name: '', position: 0);
+      // Last workout was in another split: PPL starts from its own history.
+      expect(suggestDay(days, [done(pushA, 1), done(upper, 2)]).id, 'pull');
+      expect(suggestDay(days, [done(upper, 2)]).id, 'push');
+    });
+
+    test('works for any number of days', () {
+      final five = [for (var i = 0; i < 5; i++) Day(id: 'd$i', name: 'D$i', position: i)];
+      final r4 = Rotation(id: 'r4', dayId: 'd4', name: '', position: 0);
+      final r2 = Rotation(id: 'r2', dayId: 'd2', name: '', position: 0);
+      expect(suggestDay(five, [done(r2, 1)]).id, 'd3');
+      expect(suggestDay(five, [done(r4, 1)]).id, 'd0');
+    });
+
+
       final open = Session(id: 'x', dayId: 'pull', rotationId: 'la', startedAt: DateTime(2026, 11, 5));
       expect(suggestDay(days, [done(pushA, 1), open]).id, 'pull');
     });

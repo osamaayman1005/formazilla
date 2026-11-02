@@ -18,14 +18,41 @@ class AppStore extends ChangeNotifier {
   int _idCounter = 0;
 
   static Future<AppStore> open(Storage storage) async {
-    var data = await storage.load();
+    final data = await storage.load();
     final store = AppStore._(storage, data ?? AppData(days: [], rotations: [], sessions: [], library: []));
     if (data == null) {
       final seed = buildSeed(store._newId);
-      store._data = AppData(days: seed.days, rotations: seed.rotations, sessions: [], library: seed.library);
+      store._data = AppData(
+        splits: [seed.split.split],
+        activeSplitId: seed.split.split.id,
+        days: seed.split.days,
+        rotations: seed.split.rotations,
+        sessions: [],
+        library: seed.library,
+      );
+      await storage.save(store._data);
+    } else if (store._migrateToSplits()) {
       await storage.save(store._data);
     }
     return store;
+  }
+
+  /// Schema v2 → v3: put existing days into one split. Returns true if changed.
+  bool _migrateToSplits() {
+    var changed = false;
+    if (_data.splits.isEmpty) {
+      final split = Split(id: _newId(), name: defaultSplit, position: 0);
+      _data.splits.add(split);
+      for (final d in _data.days) {
+        d.splitId = split.id;
+      }
+      changed = true;
+    }
+    if (_data.activeSplitId == null || !_data.splits.any((x) => x.id == _data.activeSplitId)) {
+      _data.activeSplitId = splits.first.id;
+      changed = true;
+    }
+    return changed;
   }
 
   String _newId() => '${DateTime.now().microsecondsSinceEpoch}-${_idCounter++}';
@@ -37,7 +64,19 @@ class AppStore extends ChangeNotifier {
 
   // ---------- Reads ----------
 
-  List<Day> get days => [..._data.days]..sort((a, b) => a.position.compareTo(b.position));
+  /// Splits you can switch between, in order.
+  List<Split> get splits =>
+      _data.splits.where((x) => !x.archived).toList()..sort((a, b) => a.position.compareTo(b.position));
+
+  Split get activeSplit => _data.splits.firstWhere((x) => x.id == _data.activeSplitId, orElse: () => splits.first);
+
+  /// Days of a split (default: the active one), in cycle order.
+  List<Day> daysOf(String splitId) =>
+      _data.days.where((d) => d.splitId == splitId && !d.archived).toList()
+        ..sort((a, b) => a.position.compareTo(b.position));
+
+  /// Days of the active split, in cycle order.
+  List<Day> get days => daysOf(activeSplit.id);
   List<Session> get sessions => _data.sessions;
   List<String> get library => _data.library;
 
@@ -73,6 +112,81 @@ class AppStore extends ChangeNotifier {
   List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_data.sessions);
   List<String> searchLibrary(String q) => logic.searchExercises(q, _data.library);
   logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _data.sessions);
+
+  // ---------- Splits and days ----------
+
+  void setActiveSplit(Split split) {
+    if (_data.activeSplitId == split.id) return;
+    _data.activeSplitId = split.id;
+    _commit();
+  }
+
+  /// Creates a split from a preset (or "Custom") and makes it active.
+  Split createSplit(String preset, {String? name}) {
+    final bundle = buildSplit(preset, _newId, name: name, position: _data.splits.length);
+    _data.splits.add(bundle.split);
+    _data.days.addAll(bundle.days);
+    _data.rotations.addAll(bundle.rotations);
+    bundle.exerciseNames.forEach(_learn);
+    _data.activeSplitId = bundle.split.id;
+    _commit();
+    return bundle.split;
+  }
+
+  void renameSplit(Split split, String name) {
+    if (name.trim().isEmpty) return;
+    split.name = name.trim();
+    _commit();
+  }
+
+  /// Hides a split (its history stays). You always keep at least one.
+  bool archiveSplit(Split split) {
+    if (splits.length <= 1) return false;
+    split.archived = true;
+    if (_data.activeSplitId == split.id) _data.activeSplitId = splits.first.id;
+    _commit();
+    return true;
+  }
+
+  /// Adds a day to the active split with one empty rotation, ready to fill.
+  Day addDay(String name) {
+    final clean = name.trim().isEmpty ? 'Day ${days.length + 1}' : name.trim();
+    final day = Day(id: _newId(), splitId: activeSplit.id, name: clean, position: days.length);
+    _data.days.add(day);
+    _data.rotations.add(Rotation(id: _newId(), dayId: day.id, name: '', position: 0));
+    _commit();
+    return day;
+  }
+
+  void renameDay(Day day, String name) {
+    if (name.trim().isEmpty) return;
+    day.name = name.trim();
+    _commit();
+  }
+
+  /// Drag-to-reorder within the active split (ReorderableListView indexes).
+  void reorderDays(int from, int to) {
+    final list = days;
+    final moved = list.removeAt(from);
+    list.insert(to > from ? to - 1 : to, moved);
+    for (var i = 0; i < list.length; i++) {
+      list[i].position = i;
+    }
+    _commit();
+  }
+
+  /// Hides a day; past workouts keep its name. A split keeps at least one day.
+  bool archiveDay(Day day) {
+    final list = daysOf(day.splitId);
+    if (list.length <= 1) return false;
+    day.archived = true;
+    final left = daysOf(day.splitId);
+    for (var i = 0; i < left.length; i++) {
+      left[i].position = i;
+    }
+    _commit();
+    return true;
+  }
 
   // ---------- Library ----------
 

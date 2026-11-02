@@ -32,11 +32,12 @@ test/                       logic unit tests + widget/store tests
 - Colours, spacing, radii and text styles come from `lib/core/theme.dart`. No hardcoded colours in widgets.
 - Weights are unitless numbers stored exactly as typed. Never convert units.
 - Suggestions never enforce: any day/rotation is one tap away.
+- A **split** holds ordered **days**; each day has 1+ **rotations**. Only the active split's history drives the next-day suggestion. Removing a split/day archives it so past workouts keep their names.
 - `android/` is generated in CI (`flutter create .`). Locally run `flutter create . --platforms android` once.
 
 ## Roadmap
 
-- Custom splits (any rotation beyond Push/Pull/Legs): `docs/plans/custom-splits.md`
+- Custom splits: `docs/plans/custom-splits.md` (phases 1–4 done; first-launch picker open)
 
 ## Build
 

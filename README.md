@@ -37,6 +37,7 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 
 - **⚡ One-tap logging** — last session's weights appear as dashed "ghost" chips. Tap one to log it. `+` repeats your previous set.
 - **🏆 Automatic PRs** — a set that beats your all-time best turns navy and the exercise shows **New PR**. Home lists your recent PRs with the gain.
+- **🔀 Any split** — Push Pull Legs, Upper / Lower, Full body, Bro split, Arnold, or your own. Switch splits in one tap from Home; history and PRs carry over.
 - **🔁 PPL with rotations** — Push A / Push B, Pull A / Pull B, a single Legs day… any mix. Days cycle in order, rotations alternate.
 - **🧭 Suggest, never enforce** — yesterday was Push, so Pull is pre-selected. Want Legs instead? One tap.
 - **🔗 Supersets** — link two exercises; they sit in one card as A and B, and "Next up" alternates for you. Save the pair to the template so it's linked every time.
@@ -138,7 +139,8 @@ If a build fails, the workflow opens an issue with the error log. Doc-only chang
 
 - [x] Supersets
 - [x] PR share card
-- [ ] Custom splits: Upper/Lower, Bro split, Full body or your own ([plan](docs/plans/custom-splits.md))
+- [x] Custom splits: Upper/Lower, Bro split, Full body or your own ([plan](docs/plans/custom-splits.md))
+- [ ] First-launch split picker
 - [ ] Import history from the old Google Sheet (`40--55--65--75`, `30x3`, `80ds`)
 - [ ] Optional reps per set
 - [ ] Rest timer between sets

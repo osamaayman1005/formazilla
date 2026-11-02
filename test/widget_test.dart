@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formazilla/app.dart';
+import 'package:formazilla/data/models.dart';
 import 'package:formazilla/data/storage.dart';
 import 'package:formazilla/state/app_store.dart';
 
@@ -68,4 +69,47 @@ void main() {
     expect(data.rotations.single.name, 'A');
     expect(data.sessions.single.rotationId, 'r');
   });
+
+  test('old saves without splits are put into one Push Pull Legs split', () async {
+    final storage = MemoryStorage()
+      ..saved = '{"days":[{"id":"d1","name":"Push","position":0},{"id":"d2","name":"Pull","position":1}],'
+          '"rotations":[{"id":"r1","dayId":"d1","name":"","position":0,"exercises":[]},'
+          '{"id":"r2","dayId":"d2","name":"","position":0,"exercises":[]}],"sessions":[],"library":[]}';
+    final store = await AppStore.open(storage);
+    expect(store.splits.single.name, 'Push Pull Legs');
+    expect(store.days.map((d) => d.name), ['Push', 'Pull']);
+  });
+
+  test('switching splits keeps each split\'s own days and suggestion', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final ppl = store.activeSplit;
+    final push = store.days.first;
+    store.finishSession(_logOne(store, store.rotationsOf(push.id).first));
+    expect(store.suggestedDay.name, 'Pull');
+
+    final ul = store.createSplit('Upper / Lower');
+    expect(store.activeSplit.id, ul.id);
+    expect(store.days.map((d) => d.name), ['Upper', 'Lower']);
+    expect(store.suggestedDay.name, 'Upper'); // PPL history doesn't count here
+
+    store.setActiveSplit(ppl);
+    expect(store.suggestedDay.name, 'Pull');
+  });
+
+  test('days can be added, reordered and removed (but never the last one)', () async {
+    final store = await AppStore.open(MemoryStorage());
+    store.createSplit('Custom', name: 'Mine');
+    expect(store.days.single.name, 'Day 1');
+    store.addDay('Arms');
+    store.reorderDays(1, 0);
+    expect(store.days.map((d) => d.name), ['Arms', 'Day 1']);
+    expect(store.archiveDay(store.days.last), isTrue);
+    expect(store.archiveDay(store.days.single), isFalse);
+  });
+}
+
+Session _logOne(AppStore store, Rotation rotation) {
+  final s = store.startSession(rotation);
+  store.addSet(s, 0, 10);
+  return s;
 }

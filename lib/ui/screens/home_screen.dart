@@ -8,6 +8,7 @@ import '../navigation.dart';
 import '../widgets/common.dart';
 import '../widgets/mascot_says.dart';
 import '../widgets/motion.dart';
+import '../widgets/split_sheet.dart';
 import '../widgets/store_scope.dart';
 
 /// Home: pick a day and rotation (pre-selected from history, never forced) and start.
@@ -41,7 +42,18 @@ class _HomeScreenState extends State<HomeScreen> {
         if (active != null)
           _ResumeCard(store: store, session: active)
         else ...[
-          const SectionLabel('Day'),
+          Row(children: [
+            const Expanded(child: SectionLabel('Day')),
+            // Current split; tap to switch or create one.
+            TextButton.icon(
+              onPressed: () => showSplitSwitcher(context, store),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.expand_more, size: 18, color: AppColors.accentLight),
+              label: Text(store.activeSplit.name,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accentLight)),
+            ),
+          ]),
           _DaySwitcher(
             days: days,
             selectedId: dayId,
@@ -107,6 +119,15 @@ class _DaySwitcher extends StatelessWidget {
   /// day, then transparent tappable labels on top.
   @override
   Widget build(BuildContext context) {
+    if (days.length > 3) {
+      return _ScrollingDays(
+        count: days.length,
+        suggestedIndex: days.indexWhere((d) => d.id == suggestedId),
+        height: _height,
+        builder: (context, i) => _dayLabel(context, days[i]),
+        isSelected: (i) => days[i].id == selectedId,
+      );
+    }
     final selectedIndex = days.indexWhere((d) => d.id == selectedId).clamp(0, days.length - 1);
     final radius = BorderRadius.circular(AppRadius.card);
     return SizedBox(
@@ -178,6 +199,67 @@ class _DaySwitcher extends StatelessWidget {
       box = DashedBorder(radius: AppRadius.card, color: AppColors.accentLight, child: box);
     }
     return Semantics(selected: selected, label: '${d.name}, ${_subtitle(d)}', child: box);
+  }
+}
+
+/// 4+ days: a horizontal row of fixed-width day buttons that scrolls, with the
+/// suggested day scrolled into view when Home opens.
+class _ScrollingDays extends StatefulWidget {
+  const _ScrollingDays({
+    required this.count,
+    required this.suggestedIndex,
+    required this.height,
+    required this.builder,
+    required this.isSelected,
+  });
+
+  final int count;
+  final int suggestedIndex;
+  final double height;
+  final IndexedWidgetBuilder builder;
+  final bool Function(int) isSelected;
+
+  static const itemWidth = 112.0;
+  static const gap = AppSpace.sm;
+
+  @override
+  State<_ScrollingDays> createState() => _ScrollingDaysState();
+}
+
+class _ScrollingDaysState extends State<_ScrollingDays> {
+  late final ScrollController _scroll = ScrollController(
+    // Show the day before the suggested one too, so you see where you are in the cycle.
+    initialScrollOffset:
+        (widget.suggestedIndex - 1).clamp(0, widget.count).toDouble() * (_ScrollingDays.itemWidth + _ScrollingDays.gap),
+  );
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.card);
+    return SizedBox(
+      height: widget.height,
+      child: ListView.separated(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        itemCount: widget.count,
+        separatorBuilder: (_, __) => const SizedBox(width: _ScrollingDays.gap),
+        itemBuilder: (context, i) => AnimatedContainer(
+          duration: Motion.of(context, Motion.fast),
+          width: _ScrollingDays.itemWidth,
+          decoration: BoxDecoration(
+            color: widget.isSelected(i) ? AppColors.accent : AppColors.card,
+            borderRadius: radius,
+          ),
+          child: widget.builder(context, i),
+        ),
+      ),
+    );
   }
 }
 

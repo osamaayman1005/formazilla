@@ -5,9 +5,10 @@ import '../../data/models.dart';
 import '../../state/app_store.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/split_sheet.dart';
 import '../widgets/store_scope.dart';
 
-/// Days and their rotations. Days cycle Push → Pull → Legs; rotations alternate A → B.
+/// The active split: its days (in cycle order) and each day's rotations.
 class TemplatesScreen extends StatelessWidget {
   const TemplatesScreen({super.key});
 
@@ -18,8 +19,11 @@ class TemplatesScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.xl, AppSpace.screen, AppSpace.xl),
       children: [
         const Text('Templates', style: AppText.title),
-        const SizedBox(height: 2),
-        const Text('Days cycle in order. Rotations alternate A → B. Long-press a rotation for more.', style: AppText.caption),
+        const SizedBox(height: AppSpace.md),
+        _SplitHeader(store: store),
+        const SizedBox(height: AppSpace.sm),
+        const Text('Days run in order, then start over. Rotations alternate A → B. Long-press a rotation for more.',
+            style: AppText.caption),
         const SizedBox(height: AppSpace.md),
         for (final day in store.days) ...[
           Row(children: [
@@ -41,6 +45,38 @@ class TemplatesScreen extends StatelessWidget {
           const SizedBox(height: AppSpace.sm),
         ],
       ],
+    );
+  }
+}
+
+/// Active split name with Switch and Edit days.
+class _SplitHeader extends StatelessWidget {
+  const _SplitHeader({required this.store});
+
+  final AppStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final split = store.activeSplit;
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Split', style: AppText.small),
+            Text(split.name, style: AppText.cardTitle.copyWith(fontSize: 18)),
+            Text('${store.days.length} days', style: AppText.small),
+          ]),
+        ),
+        TextButton(
+          onPressed: () => showSplitSwitcher(context, store),
+          child: const Text('Switch', style: TextStyle(color: AppColors.accentLight)),
+        ),
+        TextButton(
+          onPressed: () => openSplitDays(context),
+          child: const Text('Edit days', style: TextStyle(color: AppColors.accentLight)),
+        ),
+      ]),
     );
   }
 }

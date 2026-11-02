@@ -16,10 +16,12 @@ List<Session> finishedNewestFirst(Iterable<Session> sessions) {
 List<Rotation> rotationsForDay(String dayId, Iterable<Rotation> rotations) =>
     rotations.where((r) => r.dayId == dayId).toList()..sort((a, b) => a.position.compareTo(b.position));
 
-/// The day after the last finished session's day. First day when no history.
+/// The day after the last finished session's day, among [days] (the active
+/// split's days). Workouts from other splits are ignored. First day when none.
 Day suggestDay(List<Day> days, Iterable<Session> sessions) {
   final ordered = [...days]..sort((a, b) => a.position.compareTo(b.position));
-  final history = finishedNewestFirst(sessions);
+  final ids = ordered.map((d) => d.id).toSet();
+  final history = finishedNewestFirst(sessions).where((s) => ids.contains(s.dayId)).toList();
   if (history.isEmpty) return ordered.first;
   final lastIndex = ordered.indexWhere((d) => d.id == history.first.dayId);
   if (lastIndex < 0) return ordered.first;
