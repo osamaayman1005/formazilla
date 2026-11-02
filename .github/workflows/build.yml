@@ -59,8 +59,11 @@ jobs:
 
       - name: Build APK
         run: |
-          flutter build apk --release 2>&1 | tee -a build.log
-          cp build/app/outputs/flutter-apk/app-release.apk formazilla.apk
+          # One small APK per phone chip instead of one big APK with all of them.
+          # formazilla.apk = arm64 (almost every phone from the last ~8 years).
+          flutter build apk --release --split-per-abi 2>&1 | tee -a build.log
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk formazilla.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk formazilla-older-phones.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -69,8 +72,11 @@ jobs:
           name: Formazilla build ${{ github.run_number }}
           body: |
             Install: download formazilla.apk on your phone and open it.
+            Very old phone and it won't install? Use formazilla-older-phones.apk.
             Commit: ${{ github.sha }}
-          files: formazilla.apk
+          files: |
+            formazilla.apk
+            formazilla-older-phones.apk
           make_latest: true
 
       # Makes failures readable without signing in: the log lands in an issue.
