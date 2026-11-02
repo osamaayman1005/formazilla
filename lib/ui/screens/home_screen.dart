@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../state/app_store.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 import '../widgets/store_scope.dart';
 
 /// Home: pick a day and rota (pre-selected from history, never forced) and start.
@@ -100,41 +101,78 @@ class _DaySwitcher extends StatelessWidget {
     return ago == 'Yesterday' || ago == 'Today' ? '$ago ✓' : ago;
   }
 
+  static const _height = 66.0;
+  static const _gap = AppSpace.sm;
+
+  /// Three layers: card backgrounds, a navy pill that slides to the selected
+  /// day, then transparent tappable labels on top.
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      for (var i = 0; i < days.length; i++) ...[
-        if (i > 0) const SizedBox(width: AppSpace.sm),
-        Expanded(child: _dayButton(days[i])),
-      ],
-    ]);
+    final selectedIndex = days.indexWhere((d) => d.id == selectedId).clamp(0, days.length - 1);
+    final radius = BorderRadius.circular(AppRadius.card);
+    return SizedBox(
+      height: _height,
+      child: LayoutBuilder(builder: (context, c) {
+        final w = (c.maxWidth - _gap * (days.length - 1)) / days.length;
+        return Stack(children: [
+          Row(children: [
+            for (var i = 0; i < days.length; i++) ...[
+              if (i > 0) const SizedBox(width: _gap),
+              Expanded(child: DecoratedBox(decoration: BoxDecoration(color: AppColors.card, borderRadius: radius))),
+            ],
+          ]),
+          AnimatedPositioned(
+            duration: Motion.of(context, Motion.base),
+            curve: Motion.pop,
+            left: selectedIndex * (w + _gap),
+            top: 0,
+            bottom: 0,
+            width: w,
+            child: DecoratedBox(decoration: BoxDecoration(color: AppColors.accent, borderRadius: radius)),
+          ),
+          Row(children: [
+            for (var i = 0; i < days.length; i++) ...[
+              if (i > 0) const SizedBox(width: _gap),
+              Expanded(child: _dayLabel(context, days[i])),
+            ],
+          ]),
+        ]);
+      }),
+    );
   }
 
-  Widget _dayButton(Day d) {
+  Widget _dayLabel(BuildContext context, Day d) {
     final selected = d.id == selectedId;
     final suggested = d.id == suggestedId;
+    final fast = Motion.of(context, Motion.fast);
     final content = Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(d.name,
-            style: AppText.cardTitle.copyWith(fontSize: 18, color: selected ? AppColors.onAccent : AppColors.text)),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        AnimatedDefaultTextStyle(
+          duration: fast,
+          style: AppText.cardTitle.copyWith(fontSize: 18, color: selected ? AppColors.onAccent : AppColors.text),
+          child: Text(d.name),
+        ),
         const SizedBox(height: 2),
-        Text(_subtitle(d),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppText.small.copyWith(
-              color: selected || suggested ? AppColors.accentLight : AppColors.muted,
-              fontWeight: FontWeight.w500,
-            )),
+        AnimatedDefaultTextStyle(
+          duration: fast,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.small.copyWith(
+            color: selected || suggested ? AppColors.accentLight : AppColors.muted,
+            fontWeight: FontWeight.w500,
+          ),
+          child: Text(_subtitle(d)),
+        ),
       ]),
     );
     Widget box = Material(
-      color: selected ? AppColors.accent : AppColors.card,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(AppRadius.card),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.card),
         onTap: () => onSelect(d.id),
-        child: content,
+        child: SizedBox.expand(child: content),
       ),
     );
     if (suggested && !selected) {
@@ -264,17 +302,20 @@ class _RecentRecords extends StatelessWidget {
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(children: [
-            for (final r in records)
-              ListTile(
-                dense: true,
-                title: Text(r.exercise, style: AppText.body),
-                onTap: () => openExercise(context, r.exercise),
-                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text('+${formatWeight(r.delta)}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.accentLight)),
-                  const SizedBox(width: AppSpace.sm),
-                  Text(formatWeight(r.weight), style: AppText.body.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
-                ]),
+            for (final (i, r) in records.indexed)
+              EnterFromBelow(
+                delay: Duration(milliseconds: 60 * i),
+                child: ListTile(
+                  dense: true,
+                  title: Text(r.exercise, style: AppText.body),
+                  onTap: () => openExercise(context, r.exercise),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('+${formatWeight(r.delta)}',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.accentLight)),
+                    const SizedBox(width: AppSpace.sm),
+                    Text(formatWeight(r.weight), style: AppText.body.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
               ),
           ]),
         ),

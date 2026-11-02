@@ -12,6 +12,7 @@ import '../../domain/workout_logic.dart' show isNewRecord, supersetNext, superse
 import '../../state/app_store.dart';
 import 'common.dart';
 import 'keypad_sheet.dart';
+import 'motion.dart';
 import 'set_chip.dart';
 
 /// Groups consecutive exercises sharing a superset id. Single members render as
@@ -151,14 +152,25 @@ class ExerciseBody extends StatelessWidget {
           const SizedBox(width: AppSpace.sm),
         ],
         Expanded(child: Text(ex.name, style: AppText.cardTitle)),
-        if (nextUp) ...[
-          const Pill('Next up', color: AppColors.accentLight, outline: AppColors.accentLight, fontSize: 11),
-          const SizedBox(width: 6),
-        ],
-        if (hitRecord)
-          Pill('New PR ${formatWeight(top!)}', fill: AppColors.accent, color: AppColors.onAccent)
-        else if (best != null)
-          Text('PR ${formatWeight(best)}', style: AppText.small.copyWith(fontWeight: FontWeight.w500)),
+        if (letter != null)
+          _SlideSwap(
+            child: nextUp
+                ? const Padding(
+                    key: ValueKey('next'),
+                    padding: EdgeInsets.only(right: 6),
+                    child: Pill('Next up', color: AppColors.accentLight, outline: AppColors.accentLight, fontSize: 11),
+                  )
+                : const SizedBox.shrink(key: ValueKey('none')),
+          ),
+        _SlideSwap(
+          child: hitRecord
+              ? Pill('New PR ${formatWeight(top!)}',
+                  key: ValueKey('pr-$top'), fill: AppColors.accent, color: AppColors.onAccent)
+              : best != null
+                  ? Text('PR ${formatWeight(best)}',
+                      key: const ValueKey('pr-old'), style: AppText.small.copyWith(fontWeight: FontWeight.w500))
+                  : const SizedBox.shrink(key: ValueKey('pr-none')),
+        ),
         if (showMenu) _menu(context) else const SizedBox(width: 12, height: 40),
       ]),
       Padding(
@@ -174,6 +186,8 @@ class ExerciseBody extends StatelessWidget {
         child: Wrap(spacing: 8, runSpacing: 8, children: [
           for (var i = 0; i < ex.sets.length; i++)
             SetChip(
+              key: ValueKey('slot-$i'),
+              popIn: store.justLogged(session, index, i),
               kind: isNewRecord(ex.sets[i].weight, best) ? ChipKind.record : ChipKind.done,
               weight: ex.sets[i].weight,
               dropSet: ex.sets[i].dropSet,
@@ -186,6 +200,7 @@ class ExerciseBody extends StatelessWidget {
             ),
           for (var j = ex.sets.length; j < last.length; j++)
             SetChip(
+              key: ValueKey('slot-$j'),
               kind: ChipKind.ghost,
               weight: last[j],
               onTap: () {
@@ -194,6 +209,7 @@ class ExerciseBody extends StatelessWidget {
               },
             ),
           SetChip(
+            key: const ValueKey('add'),
             kind: ChipKind.add,
             onTap: () => _quickAdd(context, last),
             onLongPress: () => _addWithKeypad(context),
@@ -274,6 +290,30 @@ class ExerciseBody extends StatelessWidget {
   }
 }
 
+/// Swaps its child with a short fade + slide from the right.
+class _SlideSwap extends StatelessWidget {
+  const _SlideSwap({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: Motion.of(context, Motion.base),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, a) => FadeTransition(
+        opacity: a,
+        child: SlideTransition(
+          position: Tween(begin: const Offset(0.4, 0), end: Offset.zero).animate(a),
+          child: child,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 class _LetterBadge extends StatelessWidget {
   const _LetterBadge(this.letter, {required this.active});
 
@@ -282,7 +322,8 @@ class _LetterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: Motion.of(context, Motion.base),
       width: 26,
       height: 26,
       alignment: Alignment.center,

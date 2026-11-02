@@ -218,7 +218,20 @@ class AppStore extends ChangeNotifier {
 
   void addSet(Session s, int exIndex, double weight, {bool dropSet = false}) {
     s.exercises[exIndex].sets.add(SetLog(weight: weight, dropSet: dropSet));
+    _justLogged = (sessionId: s.id, ex: exIndex, set: s.exercises[exIndex].sets.length - 1, at: DateTime.now());
     _commit();
+  }
+
+  /// UI-only memory of the last logged set, so only that chip animates in.
+  ({String sessionId, int ex, int set, DateTime at})? _justLogged;
+
+  bool justLogged(Session s, int exIndex, int setIndex) {
+    final j = _justLogged;
+    return j != null &&
+        j.sessionId == s.id &&
+        j.ex == exIndex &&
+        j.set == setIndex &&
+        DateTime.now().difference(j.at) < const Duration(seconds: 2);
   }
 
   void updateSet(Session s, int exIndex, int setIndex, double weight, bool dropSet) {

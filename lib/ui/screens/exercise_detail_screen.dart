@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../domain/workout_logic.dart' show TopSet;
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/motion.dart';
 import '../widgets/store_scope.dart';
 
 /// One exercise: all-time PR, gain since start, top-set chart and history.
@@ -115,11 +116,17 @@ class _TopSetChart extends StatelessWidget {
                   child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                     Text(formatWeight(points[i].weight), style: AppText.small.copyWith(fontSize: 10)),
                     const SizedBox(height: 4),
-                    Container(
-                      height: max <= 0 ? 4 : 120 * (points[i].weight / max).clamp(0.04, 1.0),
-                      decoration: BoxDecoration(
-                        color: i == points.length - 1 ? AppColors.accentLight : AppColors.chip,
-                        borderRadius: BorderRadius.circular(6),
+                    // Bars grow one after another when the screen opens.
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: max <= 0 ? 0.04 : (points[i].weight / max).clamp(0.04, 1.0)),
+                      duration: Motion.of(context, Motion.slow + Duration(milliseconds: 60 * i)),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, f, __) => Container(
+                        height: 120 * f,
+                        decoration: BoxDecoration(
+                          color: i == points.length - 1 ? AppColors.accentLight : AppColors.chip,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
                     ),
                   ]),

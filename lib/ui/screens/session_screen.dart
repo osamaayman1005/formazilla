@@ -12,6 +12,7 @@ import '../navigation.dart';
 import '../widgets/common.dart';
 import '../widgets/exercise_block.dart';
 import '../widgets/exercise_input.dart';
+import '../widgets/motion.dart';
 import '../widgets/store_scope.dart';
 
 /// Full-screen workout logger. Everything autosaves; leaving keeps the session
@@ -213,15 +214,26 @@ class _SummaryDialog extends StatelessWidget {
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('${formatDuration(duration)} · $sets sets', style: AppText.caption),
         const SizedBox(height: AppSpace.md),
-        for (final r in records)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(children: [
-              Expanded(child: Text(r.exercise, style: AppText.body)),
-              Text('${formatWeight(r.previous)} → ', style: AppText.caption),
-              Text(formatWeight(r.weight),
-                  style: AppText.body.copyWith(fontWeight: FontWeight.w700, color: AppColors.accentLight)),
-            ]),
+        // PR rows arrive one by one; each new number counts up from the old one.
+        for (final (i, r) in records.indexed)
+          EnterFromBelow(
+            delay: Duration(milliseconds: 150 + 120 * i),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(children: [
+                Expanded(child: Text(r.exercise, style: AppText.body)),
+                Text('${formatWeight(r.previous)} → ', style: AppText.caption),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: r.previous, end: r.weight),
+                  duration: Motion.of(context, Motion.slow + Duration(milliseconds: 120 * i)),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, v, __) => Text(
+                    formatWeight(v == r.weight ? v : (v * 2).round() / 2),
+                    style: AppText.body.copyWith(fontWeight: FontWeight.w700, color: AppColors.accentLight),
+                  ),
+                ),
+              ]),
+            ),
           ),
       ]),
       actions: [

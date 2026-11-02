@@ -119,11 +119,12 @@ class DashedBorder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      CustomPaint(painter: _DashedPainter(radius, color), child: child);
+      CustomPaint(painter: DashedPainter(radius, color), child: child);
 }
 
-class _DashedPainter extends CustomPainter {
-  _DashedPainter(this.radius, this.color);
+/// Dashed rounded-rect outline. Used for ghost chips and dashed buttons.
+class DashedPainter extends CustomPainter {
+  DashedPainter(this.radius, this.color);
 
   final double radius;
   final Color color;
@@ -146,7 +147,7 @@ class _DashedPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DashedPainter old) => old.color != color || old.radius != radius;
+  bool shouldRepaint(DashedPainter old) => old.color != color || old.radius != radius;
 }
 
 /// Two-or-more option toggle, e.g. rota A | B.

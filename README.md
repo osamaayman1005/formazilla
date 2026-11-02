@@ -41,6 +41,7 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 - **🧭 Suggest, never enforce** — yesterday was Push, so Pull is pre-selected. Want Legs instead? One tap.
 - **🔗 Supersets** — link two exercises; they sit in one card as A and B, and "Next up" alternates for you. Save the pair to the template so it's linked every time.
 - **📸 PR share card** — hit a PR, tap Share: a story-size navy card with your number, gain and progress bars, ready for WhatsApp or Instagram.
+- **✨ Feels alive** — ghosts fill in when logged, new sets pop, PRs glow with a haptic thump, the day picker slides and charts grow in. All under ~0.4s, never blocking a tap, and off when the phone's "Remove animations" is on.
 - **🔢 Gym-friendly keypad** — big keys, `±2.5` / `±5` quick buttons, drop-set toggle. No system keyboard popping up.
 - **🔎 Autocomplete** — ~60 standard exercise names built in; anything new you type is remembered.
 - **📈 Progress** — top weight per session as a chart, full history, and gain since you started.
