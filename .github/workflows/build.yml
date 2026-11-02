@@ -41,6 +41,8 @@ jobs:
         run: |
           flutter create . --project-name formazilla --org app.formazilla --platforms android
           sed -i 's/android:label="formazilla"/android:label="Formazilla"/' android/app/src/main/AndroidManifest.xml
+          # App icon (legacy + adaptive), generated from docs/logo.png
+          cp -r ci/android-res/. android/app/src/main/res/
 
       # Same key every build, so new APKs install over old ones and keep your data.
       - name: Use stable signing key

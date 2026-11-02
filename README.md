@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🦖 Formazilla
+<img src="docs/logo-256.png" alt="Formazilla logo" width="128" height="128"/>
+
+# Formazilla
 
 **Log a gym set in one tap. See every PR the moment it happens.**
 
