@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../state/app_store.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/mascot_says.dart';
 import '../widgets/motion.dart';
 import '../widgets/store_scope.dart';
 
@@ -35,9 +36,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.xl, AppSpace.screen, AppSpace.xl),
       children: [
-        Text(formatDayDate(DateTime.now()), style: AppText.caption),
-        const SizedBox(height: 2),
-        const Text('Ready to train?', style: AppText.title),
+        MascotSays(
+          caption: formatDayDate(DateTime.now()),
+          message: active != null ? 'Let’s finish this!' : 'Ready to train?',
+        ),
         const SizedBox(height: AppSpace.xl),
         if (active != null)
           _ResumeCard(store: store, session: active)
