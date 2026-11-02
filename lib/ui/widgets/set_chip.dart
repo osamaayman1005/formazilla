@@ -161,7 +161,6 @@ class _SetChipState extends State<SetChip> with TickerProviderStateMixin {
                 ? ClawPainter(
                     color: AppColors.onAccent.withValues(alpha: 0.9 * (1 - t)),
                     progress: (t * 2.5).clamp(0.0, 1.0),
-                    strokeWidth: 2.5,
                   )
                 : null,
             child: child,
