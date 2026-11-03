@@ -67,23 +67,23 @@ void main() {
     expect(legs.supersets, isEmpty);
   });
 
-  test('renaming an exercise keeps its sets and can update the template', () async {
+  test('renaming an exercise is permanent: sets, templates, history and PRs follow', () async {
     final store = await AppStore.open(MemoryStorage());
     final rotation = store.rotationsOf(store.days.first.id).first;
-    final s = store.startSession(rotation);
-    store.addSet(s, 0, 60);
-    expect(store.isInTemplate(s, 'Chest press'), isTrue);
+    final s1 = store.startSession(rotation);
+    store.addSet(s1, 0, 60);
+    store.finishSession(s1);
 
-    store.renameExercise(s, 0, 'Machine chest press');
-    expect(s.exercises.first.name, 'Machine chest press');
-    expect(s.exercises.first.sets.single.weight, 60);
-    expect(rotation.exercises.first, 'Chest press'); // template untouched
+    final s2 = store.startSession(rotation);
+    store.addSet(s2, 0, 65);
+    store.renameExercise(s2, 0, 'Machine chest press');
 
-    store.renameExercise(s, 0, 'Hammer chest press', inTemplate: false);
-    store.renameExercise(s, 0, 'Chest press');
-    store.renameExercise(s, 0, 'Machine chest press', inTemplate: true);
+    expect(s2.exercises.first.name, 'Machine chest press');
+    expect(s2.exercises.first.sets.single.weight, 65);
     expect(rotation.exercises.first, 'Machine chest press');
+    expect(store.record('Machine chest press'), 60); // old PR carried over
     expect(store.library, contains('Machine chest press'));
+    expect(store.library, isNot(contains('Chest press')));
   });
 
   test('backups saved before the rota → rotation rename still load', () {

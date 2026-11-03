@@ -236,42 +236,31 @@ class ExerciseBody extends StatelessWidget {
     );
   }
 
-  /// Edit the exercise name only; sets stay as they are.
+  /// Permanent rename (templates and history too); sets stay as they are.
   Future<void> _rename(BuildContext context) async {
-    final ex = _ex;
-    final controller = TextEditingController(text: ex.name);
-    final inTemplate = store.isInTemplate(session, ex.name);
-    final template = store.rotationLabel(session.dayId, session.rotationId);
-    var alsoTemplate = true;
+    final controller = TextEditingController(text: _ex.name);
     final name = await showDialog<String>(
       context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, setState) => AlertDialog(
-          title: const Text('Rename exercise'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-              controller: controller,
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Machine chest press'),
-              onSubmitted: (v) => Navigator.pop(c, v),
-            ),
-            if (inTemplate)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: alsoTemplate,
-                onChanged: (v) => setState(() => alsoTemplate = v),
-                title: Text('Also in the $template template', style: AppText.body),
-              ),
-          ]),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(c, controller.text), child: const Text('Save')),
-          ],
-        ),
+      builder: (c) => AlertDialog(
+        title: const Text('Rename exercise'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(hintText: 'Machine chest press'),
+            onSubmitted: (v) => Navigator.pop(c, v),
+          ),
+          const SizedBox(height: AppSpace.sm),
+          const Text('Changes it everywhere: templates, past workouts and PRs.', style: AppText.small),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(c, controller.text), child: const Text('Save')),
+        ],
       ),
     );
-    if (name != null) store.renameExercise(session, index, name, inTemplate: inTemplate && alsoTemplate);
+    if (name != null) store.renameExercise(session, index, name);
   }
 
   /// "+" always opens an empty keypad; the dashed ghost chips are the

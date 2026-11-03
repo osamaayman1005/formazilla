@@ -261,27 +261,27 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
-  /// True when [name] is part of the session's rotation template.
-  bool isInTemplate(Session s, String name) {
-    final key = exerciseKey(name);
-    return rotationById(s.rotationId)?.exercises.any((e) => exerciseKey(e) == key) ?? false;
-  }
-
-  /// Renames one exercise in a workout (its sets stay). With [inTemplate] the
-  /// rotation template uses the new name from now on. Past workouts keep theirs.
-  void renameExercise(Session s, int index, String name, {bool inTemplate = false}) {
+  /// Permanently renames an exercise everywhere: this workout, every
+  /// template, past workouts (so PRs and progress follow) and autocomplete.
+  /// Renaming to a name you already use merges their history.
+  void renameExercise(Session s, int index, String name) {
     final clean = name.trim();
-    final ex = s.exercises[index];
-    if (clean.isEmpty || clean == ex.name) return;
-    final oldKey = exerciseKey(ex.name);
-    ex.name = clean;
-    _learn(clean);
-    final rotation = inTemplate ? rotationById(s.rotationId) : null;
-    if (rotation != null) {
-      String swap(String e) => exerciseKey(e) == oldKey ? clean : e;
-      rotation.exercises = rotation.exercises.map(swap).toList();
-      rotation.supersets = [for (final p in rotation.supersets) p.map(swap).toList()];
+    final old = s.exercises[index].name;
+    if (clean.isEmpty || clean == old) return;
+    final oldKey = exerciseKey(old);
+    String swap(String e) => exerciseKey(e) == oldKey ? clean : e;
+
+    for (final session in _data.sessions) {
+      for (final e in session.exercises) {
+        e.name = swap(e.name);
+      }
     }
+    for (final r in _data.rotations) {
+      r.exercises = r.exercises.map(swap).toList();
+      r.supersets = [for (final p in r.supersets) p.map(swap).toList()];
+    }
+    _data.library.removeWhere((n) => exerciseKey(n) == oldKey);
+    _learn(clean);
     _commit();
   }
 

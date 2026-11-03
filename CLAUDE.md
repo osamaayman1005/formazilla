@@ -40,6 +40,7 @@ test/                       logic unit tests + widget/store tests
 ## Roadmap
 
 - Custom splits: `docs/plans/custom-splits.md` (phases 1–4 done; first-launch picker open)
+- One-time exercises: when adding mid-workout, choose "just today" vs "add to template" (today it's always just today). Rename is always permanent.
 
 ## Build
 
