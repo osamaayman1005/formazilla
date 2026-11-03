@@ -30,6 +30,7 @@ class AppStore extends ChangeNotifier {
         rotations: seed.split.rotations,
         sessions: [],
         library: seed.library,
+        cardio: [...cardioPresets],
       );
       await storage.save(store._data);
     } else if (store._migrateToSplits()) {
@@ -111,6 +112,11 @@ class AppStore extends ChangeNotifier {
   List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_data.sessions, limit: limit);
   List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _data.sessions);
   List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_data.sessions);
+  bool isCardio(String name) => logic.isCardio(name, _data.cardio);
+
+  /// Cardio names for the "+ Cardio" picker, most recently added first.
+  List<String> get cardioNames => _data.cardio;
+
   List<String> searchLibrary(String q) => logic.searchExercises(q, _data.library);
   logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _data.sessions);
 
@@ -206,7 +212,7 @@ class AppStore extends ChangeNotifier {
       dayId: rotation.dayId,
       rotationId: rotation.id,
       startedAt: DateTime.now(),
-      exercises: rotation.exercises.map((n) => SessionExercise(name: n)).toList(),
+      exercises: rotation.exercises.map((n) => SessionExercise(name: n, cardio: isCardio(n))).toList(),
     );
     for (final pair in rotation.supersets) {
       _applySuperset(s, pair);
@@ -220,20 +226,33 @@ class AppStore extends ChangeNotifier {
   void switchRotation(Session s, Rotation rotation) {
     s.rotationId = rotation.id;
     s.dayId = rotation.dayId;
-    s.exercises.removeWhere((e) => e.sets.isEmpty && !rotation.exercises.any((n) => exerciseKey(n) == exerciseKey(e.name)));
+    s.exercises.removeWhere((e) => !e.logged && !rotation.exercises.any((n) => exerciseKey(n) == exerciseKey(e.name)));
     for (final n in rotation.exercises) {
       if (!s.exercises.any((e) => exerciseKey(e.name) == exerciseKey(n))) {
-        s.exercises.add(SessionExercise(name: n));
+        s.exercises.add(SessionExercise(name: n, cardio: isCardio(n)));
       }
     }
     _commit();
   }
 
-  void addExercise(Session s, String name) {
+  /// Adds an exercise to this workout only (templates are unchanged).
+  /// [cardio] marks the name as cardio from now on.
+  void addExercise(Session s, String name, {bool cardio = false}) {
     final clean = name.trim();
     if (clean.isEmpty) return;
     _learn(clean);
-    s.exercises.add(SessionExercise(name: clean));
+    if (cardio) _markCardio(clean);
+    s.exercises.add(SessionExercise(name: clean, cardio: isCardio(clean)));
+    _commit();
+  }
+
+  void _markCardio(String name) {
+    if (!isCardio(name)) _data.cardio.insert(0, name);
+  }
+
+  /// Sets (or clears, with null) the time logged for a cardio exercise.
+  void setCardioMinutes(Session s, int index, double? minutes) {
+    s.exercises[index].minutes = minutes;
     _commit();
   }
 
@@ -282,6 +301,10 @@ class AppStore extends ChangeNotifier {
     }
     _data.library.removeWhere((n) => exerciseKey(n) == oldKey);
     _learn(clean);
+    if (_data.cardio.any((n) => exerciseKey(n) == oldKey)) {
+      _data.cardio.removeWhere((n) => exerciseKey(n) == oldKey);
+      _markCardio(clean);
+    }
     _commit();
   }
 
@@ -397,8 +420,9 @@ class AppStore extends ChangeNotifier {
   /// Finishes the session and returns the PRs hit in it.
   List<logic.RecordEvent> finishSession(Session s) {
     final records = <logic.RecordEvent>[];
-    s.exercises.removeWhere((e) => e.sets.isEmpty);
+    s.exercises.removeWhere((e) => !e.logged);
     for (final e in s.exercises) {
+      if (e.sets.isEmpty) continue; // cardio: time only, no PRs yet
       final before = recordBefore(e.name, s.id);
       final top = e.sets.map((x) => x.weight).reduce((a, b) => a > b ? a : b);
       if (logic.isNewRecord(top, before)) records.add(logic.RecordEvent(e.name, top, before!, DateTime.now()));
@@ -460,10 +484,11 @@ class AppStore extends ChangeNotifier {
     return true;
   }
 
-  void addRotationExercise(Rotation rotation, String name) {
+  void addRotationExercise(Rotation rotation, String name, {bool cardio = false}) {
     final clean = name.trim();
     if (clean.isEmpty) return;
     _learn(clean);
+    if (cardio) _markCardio(clean);
     rotation.exercises.add(clean);
     _commit();
   }
@@ -484,6 +509,7 @@ class AppStore extends ChangeNotifier {
   SharedRotation _shareRotation(Rotation r, bool weights) => SharedRotation(
         name: r.name,
         exercises: [...r.exercises],
+        cardio: [for (final e in r.exercises) if (isCardio(e)) e],
         supersets: [for (final p in r.supersets) [...p]],
         weights: weights
             ? {
@@ -532,6 +558,7 @@ class AppStore extends ChangeNotifier {
           supersets: [for (final p in r.supersets) [...p]],
         ));
         r.exercises.forEach(_learn);
+        r.cardio.forEach(_markCardio);
       }
     }
     _data.activeSplitId = split.id;
@@ -547,6 +574,7 @@ class AppStore extends ChangeNotifier {
     rotation.exercises = [...shared.exercises];
     rotation.supersets = [for (final p in shared.supersets) [...p]];
     shared.exercises.forEach(_learn);
+    shared.cardio.forEach(_markCardio);
     _commit();
     return rotation;
   }

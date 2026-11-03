@@ -189,6 +189,12 @@ int supersetNext(List<int> setCounts) {
   return best;
 }
 
+/// Whether [name] is cardio (logged as time), given your cardio names.
+bool isCardio(String name, Iterable<String> cardio) {
+  final key = exerciseKey(name);
+  return cardio.any((c) => exerciseKey(c) == key);
+}
+
 /// Splits a workout's exercises into cards: a run of neighbours sharing a
 /// superset id is one card, everything else stands alone. Takes each
 /// exercise's superset id (null = none) and returns indexes per card.

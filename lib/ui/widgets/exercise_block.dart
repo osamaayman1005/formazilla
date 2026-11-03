@@ -216,7 +216,7 @@ class ExerciseBody extends StatelessWidget {
       onSelected: (v) {
         switch (v) {
           case 'rename':
-            _rename(context);
+            showRenameExercise(context, store, session, index);
           case 'superset':
             showLinkSupersetSheet(context, store, session, index);
           case 'remove':
@@ -234,33 +234,6 @@ class ExerciseBody extends StatelessWidget {
         const PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
       ],
     );
-  }
-
-  /// Permanent rename (templates and history too); sets stay as they are.
-  Future<void> _rename(BuildContext context) async {
-    final controller = TextEditingController(text: _ex.name);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Rename exercise'),
-        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(hintText: 'Machine chest press'),
-            onSubmitted: (v) => Navigator.pop(c, v),
-          ),
-          const SizedBox(height: AppSpace.sm),
-          const Text('Changes it everywhere: templates, past workouts and PRs.', style: AppText.small),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(c, controller.text), child: const Text('Save')),
-        ],
-      ),
-    );
-    if (name != null) store.renameExercise(session, index, name);
   }
 
   /// "+" always opens an empty keypad; the dashed ghost chips are the
@@ -335,11 +308,184 @@ class _LetterBadge extends StatelessWidget {
   }
 }
 
+/// Permanent rename (templates and history too); logged sets stay as they are.
+Future<void> showRenameExercise(BuildContext context, AppStore store, Session session, int index) async {
+  final controller = TextEditingController(text: session.exercises[index].name);
+  final name = await showDialog<String>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('Rename exercise'),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(hintText: 'Machine chest press'),
+          onSubmitted: (v) => Navigator.pop(c, v),
+        ),
+        const SizedBox(height: AppSpace.sm),
+        const Text('Changes it everywhere: templates, past workouts and PRs.', style: AppText.small),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(c, controller.text), child: const Text('Save')),
+      ],
+    ),
+  );
+  if (name != null) store.renameExercise(session, index, name);
+}
+
+/// Cardio: one time button. Tap it to type minutes (or change them).
+class CardioCard extends StatelessWidget {
+  const CardioCard({super.key, required this.store, required this.session, required this.index});
+
+  final AppStore store;
+  final Session session;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final ex = session.exercises[index];
+    final minutes = ex.minutes;
+    return AppCard(
+      borderColor: AppColors.accentLight,
+      padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.monitor_heart_outlined, color: AppColors.accentLight, size: 22),
+          const SizedBox(width: AppSpace.sm),
+          Expanded(child: Text(ex.name, style: AppText.cardTitle)),
+          const Pill('Cardio', fill: AppColors.accent, color: AppColors.onAccent, fontSize: 11),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.muted, size: 20),
+            color: AppColors.chip,
+            onSelected: (v) {
+              switch (v) {
+                case 'rename':
+                  showRenameExercise(context, store, session, index);
+                case 'remove':
+                  final removed = ex;
+                  store.removeExercise(session, index);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('${removed.name} removed'),
+                    action: SnackBarAction(label: 'Undo', onPressed: () => store.insertExercise(session, index, removed)),
+                  ));
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'rename', child: Text('Rename')),
+              PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
+            ],
+          ),
+        ]),
+        const SizedBox(height: AppSpace.sm),
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Material(
+            color: minutes == null ? AppColors.chip : AppColors.accent,
+            borderRadius: BorderRadius.circular(AppRadius.chip),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.chip),
+              onTap: () => _editTime(context),
+              child: SizedBox(
+                height: 56,
+                width: double.infinity,
+                child: Center(
+                  child: Text(
+                    minutes == null ? 'Add time' : '${formatWeight(minutes)} min',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: minutes == null ? AppColors.accentLight : AppColors.onAccent,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _editTime(BuildContext context) async {
+    final ex = session.exercises[index];
+    final r = await showMinutesKeypad(context, title: '${ex.name} · minutes', initial: ex.minutes);
+    if (r == null) return;
+    HapticFeedback.lightImpact();
+    store.setCardioMinutes(session, index, r.deleted ? null : r.weight);
+  }
+}
+
+/// Pick a cardio (or type your own). Returns the name, or null.
+Future<String?> showCardioPicker(BuildContext context, AppStore store) {
+  final controller = TextEditingController();
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpace.xl, 0, AppSpace.xl, AppSpace.lg),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Add cardio', style: AppText.title),
+            const SizedBox(height: AppSpace.md),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final name in store.cardioNames)
+                ActionChip(
+                  avatar: const Icon(Icons.monitor_heart_outlined, size: 16, color: AppColors.accentLight),
+                  label: Text(name),
+                  onPressed: () => Navigator.pop(c, name),
+                ),
+            ]),
+            const SizedBox(height: AppSpace.md),
+            TextField(
+              controller: controller,
+              textCapitalization: TextCapitalization.sentences,
+              style: AppText.body,
+              decoration: const InputDecoration(hintText: 'Or type your own, e.g. Hill sprints'),
+              onSubmitted: (v) => Navigator.pop(c, v.trim().isEmpty ? null : v.trim()),
+            ),
+            const SizedBox(height: AppSpace.md),
+            PrimaryButton('Add', onPressed: () {
+              final v = controller.text.trim();
+              Navigator.pop(c, v.isEmpty ? null : v);
+            }),
+          ]),
+        ),
+      ),
+    ),
+  );
+}
+
+/// The small "Cardio" pill that sits beside the add-exercise field.
+class CardioAddButton extends StatelessWidget {
+  const CardioAddButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.monitor_heart_outlined, size: 16, color: AppColors.accentLight),
+      label: const Text('Cardio', style: TextStyle(color: AppColors.accentLight, fontSize: 13)),
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: AppColors.line),
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        minimumSize: const Size(0, 36),
+      ),
+    );
+  }
+}
+
 /// Bottom sheet: pick the exercise to alternate with, optionally save to the template.
 Future<void> showLinkSupersetSheet(BuildContext context, AppStore store, Session session, int index) {
   final candidates = [
     for (var i = 0; i < session.exercises.length; i++)
-      if (i != index && session.exercises[i].supersetId == null) i,
+      if (i != index && session.exercises[i].supersetId == null && !session.exercises[i].cardio) i,
   ];
   int? chosen = candidates.isEmpty ? null : candidates.firstWhere((i) => i > index, orElse: () => candidates.first);
   var keep = true;

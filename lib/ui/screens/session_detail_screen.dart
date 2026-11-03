@@ -60,10 +60,18 @@ class SessionDetailScreen extends StatelessWidget {
               child: AppCard(
                 onTap: () => openExercise(context, e.name),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(e.name, style: AppText.cardTitle),
+                  Row(children: [
+                    if (e.cardio) ...[
+                      const Icon(Icons.monitor_heart_outlined, color: AppColors.accentLight, size: 18),
+                      const SizedBox(width: 6),
+                    ],
+                    Expanded(child: Text(e.name, style: AppText.cardTitle)),
+                  ]),
                   const SizedBox(height: 4),
                   Text(
-                    e.sets.map((x) => '${formatWeight(x.weight)}${x.dropSet ? 'ds' : ''}').join(' · '),
+                    e.cardio
+                        ? '${formatWeight(e.minutes ?? 0)} min'
+                        : e.sets.map((x) => '${formatWeight(x.weight)}${x.dropSet ? 'ds' : ''}').join(' · '),
                     style: AppText.body,
                   ),
                 ]),

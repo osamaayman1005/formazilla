@@ -19,21 +19,60 @@ Future<KeypadResult?> showWeightKeypad(
   double? initial,
   bool dropSet = false,
   bool allowDelete = false,
+  bool showDropSet = true,
+  List<double> bumps = const [-5, -2.5, 2.5, 5],
+  String? unit,
+  String deleteLabel = 'Delete set',
 }) {
   return showModalBottomSheet<KeypadResult>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _Keypad(title: title, initial: initial, dropSet: dropSet, allowDelete: allowDelete),
+    builder: (_) => _Keypad(
+      title: title,
+      initial: initial,
+      dropSet: dropSet,
+      allowDelete: allowDelete,
+      showDropSet: showDropSet,
+      bumps: bumps,
+      unit: unit,
+      deleteLabel: deleteLabel,
+    ),
   );
 }
 
+/// Minutes keypad for cardio: ±1 / ±5, no drop set.
+Future<KeypadResult?> showMinutesKeypad(BuildContext context, {required String title, double? initial}) =>
+    showWeightKeypad(
+      context,
+      title: title,
+      initial: initial,
+      allowDelete: initial != null,
+      showDropSet: false,
+      bumps: const [-5, -1, 1, 5],
+      unit: 'min',
+      deleteLabel: 'Clear time',
+    );
+
 class _Keypad extends StatefulWidget {
-  const _Keypad({required this.title, this.initial, required this.dropSet, required this.allowDelete});
+  const _Keypad({
+    required this.title,
+    this.initial,
+    required this.dropSet,
+    required this.allowDelete,
+    required this.showDropSet,
+    required this.bumps,
+    this.unit,
+    required this.deleteLabel,
+  });
 
   final String title;
   final double? initial;
   final bool dropSet;
   final bool allowDelete;
+  final bool showDropSet;
+  final List<double> bumps;
+  final String? unit;
+  final String deleteLabel;
 
   @override
   State<_Keypad> createState() => _KeypadState();
@@ -81,9 +120,10 @@ class _KeypadState extends State<_Keypad> {
                 color: _text.isEmpty ? AppColors.muted : AppColors.text,
               ),
             ),
+            if (widget.unit != null) Text(widget.unit!, style: AppText.caption, textAlign: TextAlign.center),
             const SizedBox(height: AppSpace.md),
             Row(children: [
-              for (final d in const [-5.0, -2.5, 2.5, 5.0])
+              for (final d in widget.bumps)
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -112,18 +152,21 @@ class _KeypadState extends State<_Keypad> {
               ),
             const SizedBox(height: AppSpace.xs),
             Row(children: [
-              Expanded(
-                child: FilterChip(
-                  label: const Text('Drop set'),
-                  selected: _dropSet,
-                  onSelected: (v) => setState(() => _dropSet = v),
-                ),
-              ),
+              if (widget.showDropSet)
+                Expanded(
+                  child: FilterChip(
+                    label: const Text('Drop set'),
+                    selected: _dropSet,
+                    onSelected: (v) => setState(() => _dropSet = v),
+                  ),
+                )
+              else
+                const Spacer(),
               if (widget.allowDelete)
                 TextButton.icon(
                   onPressed: () => Navigator.pop(context, const KeypadResult(deleted: true)),
                   icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                  label: const Text('Delete set', style: TextStyle(color: AppColors.danger)),
+                  label: Text(widget.deleteLabel, style: const TextStyle(color: AppColors.danger)),
                 ),
             ]),
             const SizedBox(height: AppSpace.md),

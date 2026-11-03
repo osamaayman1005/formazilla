@@ -77,6 +77,19 @@ void main() {
       expect(added.exercises.first, 'Chest press');
     });
 
+    test('cardio stays cardio when shared', () async {
+      final store = await AppStore.open(MemoryStorage());
+      final rotation = store.rotationsOf(store.days.first.id).first;
+      store.addRotationExercise(rotation, 'Hill sprints', cardio: true);
+      final message = planMessage(store.planForRotation(rotation), withCode: true);
+      expect(message, contains('Hill sprints (cardio)'));
+
+      final friend = await AppStore.open(MemoryStorage());
+      expect(friend.isCardio('Hill sprints'), isFalse);
+      friend.importIntoDay(readPlan(message)!, friend.days.first);
+      expect(friend.isCardio('Hill sprints'), isTrue);
+    });
+
     test('weights are only shared when asked', () async {
       final store = await AppStore.open(MemoryStorage());
       final rotation = store.rotationsOf(store.days.first.id).first;

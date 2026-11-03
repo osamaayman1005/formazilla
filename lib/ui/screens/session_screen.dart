@@ -49,7 +49,7 @@ class _SessionScreenState extends State<SessionScreen> {
       return const Scaffold(body: Center(child: Text('Workout closed', style: AppText.caption)));
     }
     final rotations = store.rotationsOf(session.dayId);
-    final done = session.exercises.where((e) => e.sets.isNotEmpty).length;
+    final done = session.exercises.where((e) => e.logged).length;
     final elapsed = DateTime.now().difference(session.startedAt);
     final groups = groupExercises(session);
 
@@ -90,15 +90,26 @@ class _SessionScreenState extends State<SessionScreen> {
                     padding: const EdgeInsets.only(bottom: AppSpace.md),
                     child: group.length > 1
                         ? SupersetCard(store: store, session: session, indexes: group)
-                        : ExerciseCard(store: store, session: session, index: group.first),
+                        : session.exercises[group.first].cardio
+                            ? CardioCard(store: store, session: session, index: group.first)
+                            : ExerciseCard(store: store, session: session, index: group.first),
                   ),
                 );
               },
               footer: Column(children: [
-                ExerciseInput(
-                  search: store.searchLibrary,
-                  onSubmit: (name) => store.addExercise(session, name),
-                ),
+                Row(children: [
+                  Expanded(
+                    child: ExerciseInput(
+                      search: store.searchLibrary,
+                      onSubmit: (name) => store.addExercise(session, name),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.sm),
+                  CardioAddButton(onPressed: () async {
+                    final name = await showCardioPicker(context, store);
+                    if (name != null) store.addExercise(session, name, cardio: true);
+                  }),
+                ]),
                 const SizedBox(height: AppSpace.md),
                 const Text(
                   'Tap dashed = same as last time · + = type a weight · Hold a card to move it · '
@@ -115,7 +126,7 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   Future<void> _finish(BuildContext context, AppStore store, Session session) async {
-    if (session.setCount == 0) {
+    if (!session.hasLogs) {
       final discard = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
@@ -135,13 +146,14 @@ class _SessionScreenState extends State<SessionScreen> {
     }
     final duration = DateTime.now().difference(session.startedAt);
     final sets = session.setCount;
+    final cardio = session.cardioMinutes;
     final label = store.rotationLabel(session.dayId, session.rotationId);
     final records = store.finishSession(session);
     HapticFeedback.mediumImpact();
     if (!context.mounted) return;
     final share = await showDialog<RecordEvent>(
       context: context,
-      builder: (c) => _SummaryDialog(duration: duration, sets: sets, records: records),
+      builder: (c) => _SummaryDialog(duration: duration, sets: sets, cardio: cardio, records: records),
     );
     if (!context.mounted) return;
     if (share != null) {
@@ -211,10 +223,11 @@ class _Header extends StatelessWidget {
 
 /// Workout summary. Returns the PR to share, or null for "Done".
 class _SummaryDialog extends StatelessWidget {
-  const _SummaryDialog({required this.duration, required this.sets, required this.records});
+  const _SummaryDialog({required this.duration, required this.sets, required this.cardio, required this.records});
 
   final Duration duration;
   final int sets;
+  final double cardio;
   final List<RecordEvent> records;
 
   @override
@@ -223,7 +236,8 @@ class _SummaryDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(records.isEmpty ? 'Workout saved' : 'Workout saved · ${records.length} PR${records.length == 1 ? '' : 's'}'),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${formatDuration(duration)} · $sets sets', style: AppText.caption),
+        Text('${formatDuration(duration)} · $sets sets${cardio > 0 ? ' · ${formatWeight(cardio)} min cardio' : ''}',
+            style: AppText.caption),
         const SizedBox(height: AppSpace.md),
         // PR rows arrive one by one; each new number counts up from the old one.
         for (final (i, r) in records.indexed)

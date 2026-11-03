@@ -11,6 +11,9 @@ class SharedRotation {
   final List<String> exercises;
   final List<List<String>> supersets;
 
+  /// Which of [exercises] are cardio (logged as time).
+  final List<String> cardio;
+
   /// Optional last-time weights per exercise (only when the sender chose to).
   final Map<String, List<double>> weights;
 
@@ -18,6 +21,7 @@ class SharedRotation {
     required this.name,
     required this.exercises,
     this.supersets = const [],
+    this.cardio = const [],
     this.weights = const {},
   });
 
@@ -25,6 +29,7 @@ class SharedRotation {
         'n': name,
         'e': exercises,
         if (supersets.isNotEmpty) 's': supersets,
+        if (cardio.isNotEmpty) 'c': cardio,
         if (weights.isNotEmpty) 'w': weights,
       };
 
@@ -32,6 +37,7 @@ class SharedRotation {
         name: (j['n'] as String?) ?? '',
         exercises: (j['e'] as List).cast<String>().toList(),
         supersets: ((j['s'] as List?) ?? const []).map((p) => (p as List).cast<String>().toList()).toList(),
+        cardio: ((j['c'] as List?) ?? const []).cast<String>().toList(),
         weights: ((j['w'] as Map?) ?? const {}).map(
           (k, v) => MapEntry(k as String, (v as List).map((x) => (x as num).toDouble()).toList()),
         ),
@@ -142,6 +148,7 @@ void _writeExercises(StringBuffer b, SharedRotation r) {
   for (var i = 0; i < r.exercises.length; i++) {
     final name = r.exercises[i];
     final w = r.weights[name];
-    b.writeln('${i + 1}. $name${w == null || w.isEmpty ? '' : ' — ${formatWeights(w)}'}');
+    final tag = r.cardio.contains(name) ? ' (cardio)' : '';
+    b.writeln('${i + 1}. $name$tag${w == null || w.isEmpty ? '' : ' — ${formatWeights(w)}'}');
   }
 }

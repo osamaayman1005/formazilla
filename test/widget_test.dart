@@ -86,6 +86,38 @@ void main() {
     expect(store.library, isNot(contains('Chest press')));
   });
 
+  test('cardio logs time only, survives finish, and moves like any card', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final rotation = store.rotationsOf(store.days.first.id).first;
+    final s = store.startSession(rotation);
+    store.addExercise(s, 'Hill sprints', cardio: true);
+    final i = s.exercises.length - 1;
+    expect(s.exercises[i].cardio, isTrue);
+    expect(store.isCardio('hill sprints'), isTrue); // remembered for next time
+    expect(rotation.exercises, isNot(contains('Hill sprints'))); // this workout only
+    expect(s.hasLogs, isFalse);
+
+    store.setCardioMinutes(s, i, 20);
+    expect(s.hasLogs, isTrue);
+    store.moveExerciseGroup(s, groupExercises(s).length - 1, 0); // drag to the top
+    expect(s.exercises.first.name, 'Hill sprints');
+
+    expect(store.finishSession(s), isEmpty); // no PRs from cardio
+    expect(s.exercises.single.minutes, 20); // unlogged weights dropped, cardio kept
+    expect(s.cardioMinutes, 20);
+  });
+
+  test('cardio in a template starts as cardio; old saves get the preset list', () async {
+    final storage = MemoryStorage()
+      ..saved = '{"days":[{"id":"d1","name":"Push","position":0}],'
+          '"rotations":[{"id":"r1","dayId":"d1","name":"","position":0,"exercises":["Treadmill","Dips"]}],'
+          '"sessions":[],"library":[]}';
+    final store = await AppStore.open(storage);
+    expect(store.isCardio('Treadmill'), isTrue);
+    final s = store.startSession(store.rotationsOf(store.days.single.id).single);
+    expect(s.exercises.map((e) => e.cardio), [true, false]);
+  });
+
   test('backups saved before the rota → rotation rename still load', () {
     const v1 = '{"schemaVersion":1,"days":[{"id":"d","name":"Push","position":0}],'
         '"rotas":[{"id":"r","dayId":"d","name":"A","position":0,"exercises":["Fly"]}],'

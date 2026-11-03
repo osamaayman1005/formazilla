@@ -4,6 +4,7 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/exercise_block.dart' show CardioAddButton, showCardioPicker;
 import '../widgets/exercise_input.dart';
 import '../widgets/share_sheet.dart';
 import '../widgets/store_scope.dart';
@@ -54,25 +55,34 @@ class RotationDetailScreen extends StatelessWidget {
                           child: const Icon(Icons.delete_outline, color: AppColors.danger),
                         ),
                         onDismissed: (_) => store.removeRotationExercise(rotation, i),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: AppCard(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                            child: Row(children: [
-                              SizedBox(
-                                width: 28,
-                                child: Text('${i + 1}',
-                                    style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.accentLight)),
-                              ),
-                              Expanded(child: Text(name, style: AppText.body)),
-                              ReorderableDragStartListener(
-                                index: i,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Icon(Icons.drag_handle, color: AppColors.muted),
+                        // Hold anywhere on the row (or drag the handle) to move it.
+                        child: ReorderableDelayedDragStartListener(
+                          index: i,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: AppCard(
+                              borderColor: store.isCardio(name) ? AppColors.accentLight : null,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              child: Row(children: [
+                                SizedBox(
+                                  width: 28,
+                                  child: Text('${i + 1}',
+                                      style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.accentLight)),
                                 ),
-                              ),
-                            ]),
+                                if (store.isCardio(name)) ...[
+                                  const Icon(Icons.monitor_heart_outlined, color: AppColors.accentLight, size: 18),
+                                  const SizedBox(width: 8),
+                                ],
+                                Expanded(child: Text(name, style: AppText.body)),
+                                ReorderableDragStartListener(
+                                  index: i,
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: Icon(Icons.drag_handle, color: AppColors.muted),
+                                  ),
+                                ),
+                              ]),
+                            ),
                           ),
                         ),
                       );
@@ -82,7 +92,16 @@ class RotationDetailScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.sm, AppSpace.screen, AppSpace.lg),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ExerciseInput(search: store.searchLibrary, onSubmit: (n) => store.addRotationExercise(rotation, n)),
+              Row(children: [
+                Expanded(
+                  child: ExerciseInput(search: store.searchLibrary, onSubmit: (n) => store.addRotationExercise(rotation, n)),
+                ),
+                const SizedBox(width: AppSpace.sm),
+                CardioAddButton(onPressed: () async {
+                  final name = await showCardioPicker(context, store);
+                  if (name != null) store.addRotationExercise(rotation, name, cardio: true);
+                }),
+              ]),
               const SizedBox(height: AppSpace.sm),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 for (final n in quickAdd)

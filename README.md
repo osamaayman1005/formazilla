@@ -40,6 +40,7 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 - **🔀 Any split** — Push Pull Legs, Upper / Lower, Full body, Bro split, Arnold, or your own. Switch splits in one tap from Home; history and PRs carry over.
 - **🔁 PPL with rotations** — Push A / Push B, Pull A / Pull B, a single Legs day… any mix. Days cycle in order, rotations alternate.
 - **🧭 Suggest, never enforce** — yesterday was Push, so Pull is pre-selected. Want Legs instead? One tap.
+- **❤️ Cardio** — treadmill, bike, or anything you name: one time button, logged in minutes. Hold and drag it anywhere in the workout or template.
 - **🔗 Supersets** — link two exercises; they sit in one card as A and B, and "Next up" alternates for you. Save the pair to the template so it's linked every time.
 - **📸 PR share card** — hit a PR, tap Share: a story-size navy card with your number, gain and progress bars, ready for WhatsApp or Instagram.
 - **📤 Share a plan** — send one rotation (Push A) or your whole split as an image card, plain text, or a Formazilla plan your friend imports with one tap. No account or server: the plan rides inside the chat message.
