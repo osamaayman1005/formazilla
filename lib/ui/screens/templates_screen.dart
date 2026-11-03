@@ -5,6 +5,7 @@ import '../../data/models.dart';
 import '../../state/app_store.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/share_sheet.dart';
 import '../widgets/split_sheet.dart';
 import '../widgets/store_scope.dart';
 
@@ -21,7 +22,18 @@ class TemplatesScreen extends StatelessWidget {
         const Text('Templates', style: AppText.title),
         const SizedBox(height: AppSpace.md),
         _SplitHeader(store: store),
-        const SizedBox(height: AppSpace.sm),
+        Row(children: [
+          TextButton.icon(
+            onPressed: () => showShareSheet(context, store),
+            icon: const Icon(Icons.ios_share, size: 18, color: AppColors.accentLight),
+            label: const Text('Share split', style: TextStyle(color: AppColors.accentLight)),
+          ),
+          TextButton.icon(
+            onPressed: () => importPlanFromClipboard(context, store),
+            icon: const Icon(Icons.download_outlined, size: 18, color: AppColors.accentLight),
+            label: const Text('Import plan', style: TextStyle(color: AppColors.accentLight)),
+          ),
+        ]),
         const Text('Days run in order, then start over. Rotations alternate A → B. Long-press a rotation for more.',
             style: AppText.caption),
         const SizedBox(height: AppSpace.md),
@@ -115,6 +127,7 @@ class _RotationCard extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(leading: const Icon(Icons.edit_outlined), title: const Text('Rename'), onTap: () => Navigator.pop(c, 'rename')),
           ListTile(leading: const Icon(Icons.copy_outlined), title: const Text('Duplicate'), onTap: () => Navigator.pop(c, 'duplicate')),
+          ListTile(leading: const Icon(Icons.ios_share), title: const Text('Share'), onTap: () => Navigator.pop(c, 'share')),
           ListTile(
             leading: const Icon(Icons.delete_outline, color: AppColors.danger),
             title: const Text('Delete', style: TextStyle(color: AppColors.danger)),
@@ -130,6 +143,8 @@ class _RotationCard extends StatelessWidget {
         if (name != null) store.renameRotation(rotation, name);
       case 'duplicate':
         store.duplicateRotation(rotation);
+      case 'share':
+        await showShareSheet(context, store, rotation: rotation);
       case 'delete':
         if (!store.deleteRotation(rotation) && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

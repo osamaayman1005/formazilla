@@ -8,6 +8,7 @@ import '../core/format.dart';
 import '../data/models.dart';
 import '../data/seed.dart';
 import '../data/storage.dart';
+import '../domain/shared_plan.dart';
 import '../domain/workout_logic.dart' as logic;
 
 class AppStore extends ChangeNotifier {
@@ -452,6 +453,78 @@ class AppStore extends ChangeNotifier {
     final name = rotation.exercises.removeAt(from);
     rotation.exercises.insert(to, name);
     _commit();
+  }
+
+  // ---------- Sharing ----------
+
+  SharedRotation _shareRotation(Rotation r, bool weights) => SharedRotation(
+        name: r.name,
+        exercises: [...r.exercises],
+        supersets: [for (final p in r.supersets) [...p]],
+        weights: weights
+            ? {
+                for (final e in r.exercises)
+                  if (logic.lastTimeWeights(e, _data.sessions).isNotEmpty) e: logic.lastTimeWeights(e, _data.sessions),
+              }
+            : const {},
+      );
+
+  /// One rotation, e.g. Push A. [weights] adds your last-time weights.
+  SharedPlan planForRotation(Rotation rotation, {bool weights = false}) {
+    final day = dayById(rotation.dayId);
+    return SharedPlan(
+      name: day?.name ?? 'Workout',
+      isSplit: false,
+      days: [SharedDay(name: day?.name ?? 'Workout', rotations: [_shareRotation(rotation, weights)])],
+    );
+  }
+
+  /// The active split with every day and rotation.
+  SharedPlan planForSplit({bool weights = false}) => SharedPlan(
+        name: activeSplit.name,
+        isSplit: true,
+        days: [
+          for (final d in days)
+            SharedDay(name: d.name, rotations: [for (final r in rotationsOf(d.id)) _shareRotation(r, weights)]),
+        ],
+      );
+
+  /// Adds a shared plan as a new split and switches to it. With [replace]
+  /// the current split is archived (its workouts stay in History).
+  Split importAsSplit(SharedPlan plan, {bool replace = false}) {
+    final previous = activeSplit;
+    final split = Split(id: _newId(), name: plan.isSplit ? plan.name : plan.title, position: _data.splits.length);
+    _data.splits.add(split);
+    for (final (i, d) in plan.days.indexed) {
+      final day = Day(id: _newId(), splitId: split.id, name: d.name, position: i);
+      _data.days.add(day);
+      for (final (j, r) in d.rotations.indexed) {
+        _data.rotations.add(Rotation(
+          id: _newId(),
+          dayId: day.id,
+          name: plan.isSplit ? r.name : '',
+          position: j,
+          exercises: [...r.exercises],
+          supersets: [for (final p in r.supersets) [...p]],
+        ));
+        r.exercises.forEach(_learn);
+      }
+    }
+    _data.activeSplitId = split.id;
+    if (replace && previous.id != split.id) previous.archived = true;
+    _commit();
+    return split;
+  }
+
+  /// Adds a shared single rotation to [day] as its next rotation (B, C…).
+  Rotation importIntoDay(SharedPlan plan, Day day) {
+    final shared = plan.rotation;
+    final rotation = addRotation(day.id);
+    rotation.exercises = [...shared.exercises];
+    rotation.supersets = [for (final p in shared.supersets) [...p]];
+    shared.exercises.forEach(_learn);
+    _commit();
+    return rotation;
   }
 
   // ---------- Backup ----------

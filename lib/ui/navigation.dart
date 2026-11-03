@@ -4,7 +4,9 @@ library;
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
+import '../domain/shared_plan.dart';
 import 'screens/exercise_detail_screen.dart';
+import 'screens/plan_card_screen.dart';
 import 'screens/record_card_screen.dart';
 import 'screens/rotation_detail_screen.dart';
 import 'screens/session_detail_screen.dart';
@@ -35,3 +37,6 @@ Future<void> openRecordCard(BuildContext context, String exercise,
 
 Future<void> openSplitDays(BuildContext context) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SplitDaysScreen()));
+
+Future<void> openPlanCard(BuildContext context, SharedPlan plan) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlanCardScreen(plan: plan)));

@@ -17,6 +17,7 @@ lib/
   core/                     theme tokens (theme.dart), formatting (format.dart)
   data/                     models, seed data, storage (JSON file; MemoryStorage for tests)
   domain/workout_logic.dart pure rules: next day/rotation, PRs, last-time values, search
+  domain/shared_plan.dart   share/import format: readable message + `FZ1:` code line
   state/app_store.dart      ChangeNotifier; the ONLY place data changes; autosaves
   ui/
     navigation.dart         all routes

@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
 import '../widgets/exercise_input.dart';
+import '../widgets/share_sheet.dart';
 import '../widgets/store_scope.dart';
 
 /// Edit one rotation: reorder (drag), remove (swipe), add exercises, start it.
@@ -25,7 +26,13 @@ class RotationDetailScreen extends StatelessWidget {
     final quickAdd = store.library.where((n) => !inRotation.contains(exerciseKey(n))).take(6).toList();
 
     return Scaffold(
-      appBar: AppBar(title: Text(label)),
+      appBar: AppBar(title: Text(label), actions: [
+        IconButton(
+          tooltip: 'Share',
+          icon: const Icon(Icons.ios_share),
+          onPressed: () => showShareSheet(context, store, rotation: rotation),
+        ),
+      ]),
       body: SafeArea(
         child: Column(children: [
           Expanded(
