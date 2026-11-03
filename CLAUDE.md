@@ -32,6 +32,7 @@ test/                       logic unit tests + widget/store tests
 - UI reads via `StoreScope.of(context)` and changes data only through `AppStore` methods.
 - Colours, spacing, radii and text styles come from `lib/core/theme.dart`. No hardcoded colours in widgets.
 - Weights are unitless numbers stored exactly as typed. Never convert units.
+- Edits inside a plan workout are permanent: add, remove, reorder and rename also update the rotation template (and rename updates history too).
 - A one-time workout counts for PRs (same exercise name) and History only: suggestions, last-time values and Progress read `planWorkouts`.
 - Cardio is any name in `AppData.cardio`; it's logged as minutes (one time button), never as sets, and has no PRs or supersets.
 - Suggestions never enforce: any day/rotation is one tap away.
