@@ -261,6 +261,30 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
+  /// True when [name] is part of the session's rotation template.
+  bool isInTemplate(Session s, String name) {
+    final key = exerciseKey(name);
+    return rotationById(s.rotationId)?.exercises.any((e) => exerciseKey(e) == key) ?? false;
+  }
+
+  /// Renames one exercise in a workout (its sets stay). With [inTemplate] the
+  /// rotation template uses the new name from now on. Past workouts keep theirs.
+  void renameExercise(Session s, int index, String name, {bool inTemplate = false}) {
+    final clean = name.trim();
+    final ex = s.exercises[index];
+    if (clean.isEmpty || clean == ex.name) return;
+    final oldKey = exerciseKey(ex.name);
+    ex.name = clean;
+    _learn(clean);
+    final rotation = inTemplate ? rotationById(s.rotationId) : null;
+    if (rotation != null) {
+      String swap(String e) => exerciseKey(e) == oldKey ? clean : e;
+      rotation.exercises = rotation.exercises.map(swap).toList();
+      rotation.supersets = [for (final p in rotation.supersets) p.map(swap).toList()];
+    }
+    _commit();
+  }
+
   // ---------- Supersets ----------
 
   /// Links exercise [a] with [b]: [b] moves right after [a] and they alternate.

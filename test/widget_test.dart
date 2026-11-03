@@ -67,6 +67,25 @@ void main() {
     expect(legs.supersets, isEmpty);
   });
 
+  test('renaming an exercise keeps its sets and can update the template', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final rotation = store.rotationsOf(store.days.first.id).first;
+    final s = store.startSession(rotation);
+    store.addSet(s, 0, 60);
+    expect(store.isInTemplate(s, 'Chest press'), isTrue);
+
+    store.renameExercise(s, 0, 'Machine chest press');
+    expect(s.exercises.first.name, 'Machine chest press');
+    expect(s.exercises.first.sets.single.weight, 60);
+    expect(rotation.exercises.first, 'Chest press'); // template untouched
+
+    store.renameExercise(s, 0, 'Hammer chest press', inTemplate: false);
+    store.renameExercise(s, 0, 'Chest press');
+    store.renameExercise(s, 0, 'Machine chest press', inTemplate: true);
+    expect(rotation.exercises.first, 'Machine chest press');
+    expect(store.library, contains('Machine chest press'));
+  });
+
   test('backups saved before the rota → rotation rename still load', () {
     const v1 = '{"schemaVersion":1,"days":[{"id":"d","name":"Push","position":0}],'
         '"rotas":[{"id":"r","dayId":"d","name":"A","position":0,"exercises":["Fly"]}],'
