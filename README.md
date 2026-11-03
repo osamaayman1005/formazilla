@@ -35,7 +35,7 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 
 ## ✨ Features
 
-- **⚡ One-tap logging** — last session's weights appear as dashed "ghost" chips. Tap one to log it. `+` repeats your previous set.
+- **⚡ One-tap logging** — last session's weights appear as dashed "ghost" chips. Tap one to log it. `+` opens the keypad for a new weight. Hold a card to drag it up or down.
 - **🏆 Automatic PRs** — a set that beats your all-time best turns navy and the exercise shows **New PR**. Home lists your recent PRs with the gain.
 - **🔀 Any split** — Push Pull Legs, Upper / Lower, Full body, Bro split, Arnold, or your own. Switch splits in one tap from Home; history and PRs carry over.
 - **🔁 PPL with rotations** — Push A / Push B, Pull A / Pull B, a single Legs day… any mix. Days cycle in order, rotations alternate.

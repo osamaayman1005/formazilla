@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
-import '../../domain/workout_logic.dart' show isNewRecord, supersetNext, supersetRound;
+import '../../domain/workout_logic.dart' show exerciseGroups, isNewRecord, supersetNext, supersetRound;
 import '../../state/app_store.dart';
 import 'common.dart';
 import 'kaiju.dart';
@@ -16,22 +16,8 @@ import 'keypad_sheet.dart';
 import 'motion.dart';
 import 'set_chip.dart';
 
-/// Groups consecutive exercises sharing a superset id. Single members render as
-/// plain cards (e.g. after an undo restored only one of a pair).
-List<List<int>> groupExercises(Session s) {
-  final groups = <List<int>>[];
-  var i = 0;
-  while (i < s.exercises.length) {
-    final id = s.exercises[i].supersetId;
-    final group = [i];
-    while (id != null && i + 1 < s.exercises.length && s.exercises[i + 1].supersetId == id) {
-      group.add(++i);
-    }
-    groups.add(group);
-    i++;
-  }
-  return groups;
-}
+/// The cards of a workout: supersets share one card. See [exerciseGroups].
+List<List<int>> groupExercises(Session s) => exerciseGroups([for (final e in s.exercises) e.supersetId]);
 
 /// One exercise in its own card.
 class ExerciseCard extends StatelessWidget {
@@ -215,8 +201,7 @@ class ExerciseBody extends StatelessWidget {
           SetChip(
             key: const ValueKey('add'),
             kind: ChipKind.add,
-            onTap: () => _quickAdd(context, last),
-            onLongPress: () => _addWithKeypad(context),
+            onTap: () => _addWithKeypad(context),
           ),
         ]),
       ),
@@ -230,10 +215,6 @@ class ExerciseBody extends StatelessWidget {
       color: AppColors.chip,
       onSelected: (v) {
         switch (v) {
-          case 'up':
-            store.moveExercise(session, index, index - 1);
-          case 'down':
-            store.moveExercise(session, index, index + 1);
           case 'superset':
             showLinkSupersetSheet(context, store, session, index);
           case 'remove':
@@ -247,32 +228,15 @@ class ExerciseBody extends StatelessWidget {
       },
       itemBuilder: (_) => [
         if (!inSuperset) const PopupMenuItem(value: 'superset', child: Text('Superset with…')),
-        const PopupMenuItem(value: 'up', child: Text('Move up')),
-        const PopupMenuItem(value: 'down', child: Text('Move down')),
         const PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
       ],
     );
   }
 
-  /// "+" logs the previous set again, or last time's first set, or opens the keypad.
-  void _quickAdd(BuildContext context, List<double> last) {
-    final sets = _ex.sets;
-    final weight = sets.isNotEmpty ? sets.last.weight : (last.isNotEmpty ? last.first : null);
-    if (weight == null) {
-      _addWithKeypad(context);
-      return;
-    }
-    HapticFeedback.lightImpact();
-    store.addSet(session, index, weight);
-  }
-
+  /// "+" always opens an empty keypad; the dashed ghost chips are the
+  /// one-tap "same as last time" option.
   Future<void> _addWithKeypad(BuildContext context) async {
-    final sets = _ex.sets;
-    final r = await showWeightKeypad(
-      context,
-      title: '${_ex.name} · set ${sets.length + 1}',
-      initial: sets.isNotEmpty ? sets.last.weight : null,
-    );
+    final r = await showWeightKeypad(context, title: '${_ex.name} · set ${_ex.sets.length + 1}');
     if (r?.weight != null) store.addSet(session, index, r!.weight!, dropSet: r.dropSet);
   }
 

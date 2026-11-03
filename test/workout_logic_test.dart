@@ -152,6 +152,24 @@ void main() {
     });
   });
 
+  group('reordering cards', () {
+    test('a superset is one card', () {
+      expect(exerciseGroups([null, 's', 's', null]), [
+        [0],
+        [1, 2],
+        [3],
+      ]);
+    });
+
+    test('moving a superset keeps its partners together', () {
+      final items = ['Squat', 'Abduction', 'Adduction', 'Calf'];
+      final groups = exerciseGroups([null, 's', 's', null]);
+      expect(moveGroup(items, groups, 1, 0), ['Abduction', 'Adduction', 'Squat', 'Calf']);
+      expect(moveGroup(items, groups, 0, 2), ['Abduction', 'Adduction', 'Calf', 'Squat']);
+      expect(moveGroup(items, groups, 2, 1), ['Squat', 'Calf', 'Abduction', 'Adduction']);
+    });
+  });
+
   group('record card', () {
     test('gain is measured from the first session', () {
       final h = [done(pushA, 1, {'Fly': [120]}), done(pushA, 4, {'Fly': [200]}), done(pushA, 7, {'Fly': [180]})];

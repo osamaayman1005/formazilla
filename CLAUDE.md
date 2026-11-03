@@ -34,6 +34,7 @@ test/                       logic unit tests + widget/store tests
 - Suggestions never enforce: any day/rotation is one tap away.
 - A **split** holds ordered **days**; each day has 1+ **rotations**. Only the active split's history drives the next-day suggestion. Removing a split/day archives it so past workouts keep their names.
 - `android/` is generated in CI (`flutter create .`). Locally run `flutter create . --platforms android` once.
+- Every APK must be signed with `ci/signing.keystore` (CI patches Gradle and checks the cert). A different key forces an uninstall, which wipes the user's data.
 
 ## Roadmap
 

@@ -3,6 +3,7 @@ import 'package:formazilla/app.dart';
 import 'package:formazilla/data/models.dart';
 import 'package:formazilla/data/storage.dart';
 import 'package:formazilla/state/app_store.dart';
+import 'package:formazilla/ui/widgets/exercise_block.dart' show groupExercises;
 
 void main() {
   testWidgets('first launch shows Home with seeded days and starts a workout', (tester) async {
@@ -50,9 +51,16 @@ void main() {
     store.finishSession(s1);
 
     final s2 = store.startSession(legs);
-    final a = s2.exercises.indexWhere((e) => e.name == 'Hip abduction');
+    var a = s2.exercises.indexWhere((e) => e.name == 'Hip abduction');
     expect(s2.exercises[a + 1].supersetId, s2.exercises[a].supersetId);
     expect(s2.exercises[a].supersetId, isNotNull);
+
+    // Dragging the superset card to the top moves both partners, still linked.
+    final card = groupExercises(s2).indexWhere((g) => g.length == 2);
+    store.moveExerciseGroup(s2, card, 0);
+    expect(s2.exercises.take(2).map((e) => e.name), ['Hip abduction', 'Hip adduction']);
+    expect(s2.exercises[0].supersetId, s2.exercises[1].supersetId);
+    a = 0;
 
     store.unlinkSuperset(s2, s2.exercises[a].supersetId!, fromTemplate: true);
     expect(s2.exercises.every((e) => e.supersetId == null), isTrue);

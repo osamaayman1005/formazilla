@@ -51,6 +51,7 @@ class _SessionScreenState extends State<SessionScreen> {
     final rotations = store.rotationsOf(session.dayId);
     final done = session.exercises.where((e) => e.sets.isNotEmpty).length;
     final elapsed = DateTime.now().difference(session.startedAt);
+    final groups = groupExercises(session);
 
     return Scaffold(
       body: SafeArea(
@@ -64,38 +65,48 @@ class _SessionScreenState extends State<SessionScreen> {
             onFinish: () => _finish(context, store, session),
           ),
           Expanded(
-            child: ListView(
+            // Hold a card, then drag it up or down. Supersets move as one card.
+            child: ReorderableListView.builder(
               padding: const EdgeInsets.fromLTRB(AppSpace.screen, 0, AppSpace.screen, AppSpace.xl),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              children: [
-                for (final group in groupExercises(session))
-                  Padding(
+              buildDefaultDragHandles: false,
+              itemCount: groups.length,
+              onReorderStart: (_) => HapticFeedback.mediumImpact(),
+              onReorderItem: (from, to) => store.moveExerciseGroup(session, from, to),
+              proxyDecorator: (child, _, animation) => AnimatedBuilder(
+                animation: animation,
+                builder: (_, child) => Transform.scale(
+                  scale: 1 + 0.03 * Curves.easeOut.transform(animation.value),
+                  child: Material(type: MaterialType.transparency, child: child),
+                ),
+                child: child,
+              ),
+              itemBuilder: (context, g) {
+                final group = groups[g];
+                return ReorderableDelayedDragStartListener(
+                  key: ObjectKey(session.exercises[group.first]),
+                  index: g,
+                  child: Padding(
                     padding: const EdgeInsets.only(bottom: AppSpace.md),
                     child: group.length > 1
-                        ? SupersetCard(
-                            key: ObjectKey(session.exercises[group.first]),
-                            store: store,
-                            session: session,
-                            indexes: group,
-                          )
-                        : ExerciseCard(
-                            key: ObjectKey(session.exercises[group.first]),
-                            store: store,
-                            session: session,
-                            index: group.first,
-                          ),
+                        ? SupersetCard(store: store, session: session, indexes: group)
+                        : ExerciseCard(store: store, session: session, index: group.first),
                   ),
+                );
+              },
+              footer: Column(children: [
                 ExerciseInput(
                   search: store.searchLibrary,
                   onSubmit: (name) => store.addExercise(session, name),
                 ),
                 const SizedBox(height: AppSpace.md),
                 const Text(
-                  'Tap dashed = same as last time · Tap + to repeat · Long-press a set = drop set · ⋮ = superset',
+                  'Tap dashed = same as last time · + = type a weight · Hold a card to move it · '
+                  'Long-press a set = drop set · ⋮ = superset',
                   style: AppText.small,
                   textAlign: TextAlign.center,
                 ),
-              ],
+              ]),
             ),
           ),
         ]),

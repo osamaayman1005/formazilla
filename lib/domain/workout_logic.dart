@@ -189,6 +189,32 @@ int supersetNext(List<int> setCounts) {
   return best;
 }
 
+/// Splits a workout's exercises into cards: a run of neighbours sharing a
+/// superset id is one card, everything else stands alone. Takes each
+/// exercise's superset id (null = none) and returns indexes per card.
+List<List<int>> exerciseGroups(List<String?> supersetIds) {
+  final groups = <List<int>>[];
+  var i = 0;
+  while (i < supersetIds.length) {
+    final id = supersetIds[i];
+    final group = [i];
+    while (id != null && i + 1 < supersetIds.length && supersetIds[i + 1] == id) {
+      group.add(++i);
+    }
+    groups.add(group);
+    i++;
+  }
+  return groups;
+}
+
+/// Moves card [from] so it ends up at card position [to]. A superset moves as
+/// one block, so partners always stay together.
+List<T> moveGroup<T>(List<T> items, List<List<int>> groups, int from, int to) {
+  final blocks = [for (final g in groups) [for (final i in g) items[i]]];
+  blocks.insert(to, blocks.removeAt(from));
+  return [for (final b in blocks) ...b];
+}
+
 /// Current round, 1-based: full rounds completed + 1.
 int supersetRound(List<int> setCounts) =>
     setCounts.isEmpty ? 1 : setCounts.reduce((a, b) => a < b ? a : b) + 1;

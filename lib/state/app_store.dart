@@ -247,13 +247,16 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
-  void moveExercise(Session s, int from, int to) {
-    if (to < 0 || to >= s.exercises.length) return;
-    // Moving breaks the pairing; unlink first so partners never end up apart.
-    _dissolve(s, s.exercises[from].supersetId);
-    _dissolve(s, s.exercises[to].supersetId);
-    final e = s.exercises.removeAt(from);
-    s.exercises.insert(to, e);
+  /// Drag-to-reorder: moves card [from] to card position [to] (both are
+  /// indexes into [exerciseGroups]). Supersets move as one card.
+  void moveExerciseGroup(Session s, int from, int to) {
+    final groups = logic.exerciseGroups([for (final e in s.exercises) e.supersetId]);
+    if (from == to || from < 0 || from >= groups.length || to < 0 || to >= groups.length) return;
+    final moved = logic.moveGroup(s.exercises, groups, from, to);
+    _justLogged = null; // indexes shift; don't replay a pop-in on the wrong chip
+    s.exercises
+      ..clear()
+      ..addAll(moved);
     _commit();
   }
 
