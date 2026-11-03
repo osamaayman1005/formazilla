@@ -143,8 +143,8 @@ class Session {
   DateTime? finishedAt;
   List<SessionExercise> exercises;
 
-  /// A one-time workout: outside any plan (empty dayId/rotationId). It shows
-  /// in History but affects nothing else — no suggestion, PRs or last-time.
+  /// A one-time workout: outside any plan (empty dayId/rotationId). It counts
+  /// for PRs and History only — no suggestion, last-time values or Progress.
   bool oneTime;
   String? title;
 

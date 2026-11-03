@@ -1,8 +1,9 @@
 # One-time workouts
 
-> Status: built. Decision changed from this draft: a one-time workout affects
-> **nothing** but History — no PRs, no last-time values inside it or from it,
-> no Progress, no suggestion. Data: `Session.oneTime` + `title` (empty day ids).
+> Status: built. Decision changed from this draft: a one-time workout counts
+> for **PRs only** (same exercise name) and shows in History. No last-time
+> values inside it or from it, no Progress, no suggestion.
+> Data: `Session.oneTime` + `title` (empty day ids).
 
 A workout that isn't part of any plan: a hotel gym, a session with a friend,
 a "just arms today". Started from Home, never saved to a split or template,

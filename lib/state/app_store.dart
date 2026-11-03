@@ -99,7 +99,9 @@ class AppStore extends ChangeNotifier {
   Session? get activeSession => _data.sessions.where((s) => !s.isFinished).firstOrNull;
   List<Session> get history => logic.finishedNewestFirst(_data.sessions);
 
-  /// Everything except one-time workouts (those affect nothing but History).
+  /// Everything except one-time workouts. One-time workouts count for PRs
+  /// (same exercise name) and History only — not suggestions, last-time
+  /// values or Progress.
   Iterable<Session> get _plan => logic.planWorkouts(_data.sessions);
 
   Day get suggestedDay => logic.suggestDay(days, _plan);
@@ -107,20 +109,20 @@ class AppStore extends ChangeNotifier {
   DateTime? lastDoneAt(String dayId) => logic.lastDoneAt(dayId, _plan);
 
   double? recordBefore(String exercise, String sessionId) =>
-      logic.personalRecord(exercise, _plan, excludeSessionId: sessionId);
-  double? record(String exercise) => logic.personalRecord(exercise, _plan);
+      logic.personalRecord(exercise, _data.sessions, excludeSessionId: sessionId);
+  double? record(String exercise) => logic.personalRecord(exercise, _data.sessions);
   List<double> lastTime(String exercise, String sessionId) =>
       logic.lastTimeWeights(exercise, _plan, excludeSessionId: sessionId);
 
-  /// Inside a workout: one-time workouts show no last-time values or PR hints.
+  /// Inside a workout: one-time workouts show no last-time values.
   List<double> lastTimeIn(Session s, String exercise) => s.oneTime ? const [] : lastTime(exercise, s.id);
-  double? recordBeforeIn(Session s, String exercise) => s.oneTime ? null : recordBefore(exercise, s.id);
+  double? recordBeforeIn(Session s, String exercise) => recordBefore(exercise, s.id);
 
   /// "Push A", or a one-time workout's title.
   String sessionTitle(Session s) =>
       s.oneTime ? (s.title?.trim().isNotEmpty == true ? s.title! : 'One-time workout') : rotationLabel(s.dayId, s.rotationId);
 
-  List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_plan, limit: limit);
+  List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_data.sessions, limit: limit);
   List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _plan);
   List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_plan);
   bool isCardio(String name) => logic.isCardio(name, _data.cardio);
@@ -129,7 +131,7 @@ class AppStore extends ChangeNotifier {
   List<String> get cardioNames => _data.cardio;
 
   List<String> searchLibrary(String q) => logic.searchExercises(q, _data.library);
-  logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _plan);
+  logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _data.sessions);
 
   // ---------- Splits and days ----------
 
@@ -447,12 +449,6 @@ class AppStore extends ChangeNotifier {
   List<logic.RecordEvent> finishSession(Session s) {
     final records = <logic.RecordEvent>[];
     s.exercises.removeWhere((e) => !e.logged);
-    if (s.oneTime) {
-      // Affects nothing: no PRs from one-time workouts.
-      s.finishedAt = DateTime.now();
-      _commit();
-      return records;
-    }
     for (final e in s.exercises) {
       if (e.sets.isEmpty) continue; // cardio: time only, no PRs yet
       final before = recordBefore(e.name, s.id);

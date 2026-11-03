@@ -5,8 +5,8 @@ library;
 import '../core/format.dart';
 import '../data/models.dart';
 
-/// Workouts that count for suggestions, PRs, last-time values and Progress:
-/// everything except one-time workouts.
+/// Workouts that count for suggestions, last-time values and Progress:
+/// everything except one-time workouts (those count for PRs only).
 Iterable<Session> planWorkouts(Iterable<Session> sessions) => sessions.where((s) => !s.oneTime);
 
 /// Finished sessions, newest first.
