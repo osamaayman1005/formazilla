@@ -200,6 +200,19 @@ int exercisesDone(Session s) {
   return s.exercises.where((e) => e.logged && exerciseKey(e.name) != current).length;
 }
 
+/// A template reordered to follow the workout: exercises in both take the
+/// workout's order; anything only in the template keeps its place at the end.
+List<String> followWorkoutOrder(List<String> template, List<String> workout) {
+  final templateKeys = template.map(exerciseKey).toSet();
+  final ordered = <String>[];
+  for (final w in workout) {
+    final k = exerciseKey(w);
+    if (templateKeys.contains(k) && !ordered.any((o) => exerciseKey(o) == k)) ordered.add(w);
+  }
+  final workoutKeys = workout.map(exerciseKey).toSet();
+  return [...ordered, ...template.where((t) => !workoutKeys.contains(exerciseKey(t)))];
+}
+
 /// Whether [name] is cardio (logged as time), given your cardio names.
 bool isCardio(String name, Iterable<String> cardio) {
   final key = exerciseKey(name);

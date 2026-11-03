@@ -183,6 +183,31 @@ void main() {
     expect(store.days.single.name, 'Push');
   });
 
+  test('changes inside a plan workout are permanent; one-time ones are not', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final push = store.rotationsOf(store.days.first.id).first;
+    final s = store.startSession(push);
+
+    store.removeExercise(s, 0); // Chest press
+    expect(push.exercises, isNot(contains('Chest press')));
+    store.addExercise(s, 'Machine chest press');
+    expect(push.exercises.last, 'Machine chest press');
+    store.moveExerciseGroup(s, groupExercises(s).length - 1, 0); // drag to the top
+    expect(push.exercises.first, 'Machine chest press');
+    expect(push.exercises, s.exercises.map((e) => e.name).toList());
+
+    final removed = s.exercises[1];
+    store.removeExercise(s, 1);
+    store.insertExercise(s, 1, removed); // undo
+    expect(push.exercises[1], removed.name);
+
+    store.finishSession(_logOne(store, push));
+    final extra = store.startOneTime();
+    store.addExercise(extra, 'Plank');
+    final all = store.days.expand((d) => store.rotationsOf(d.id));
+    expect(all.any((r) => r.exercises.contains('Plank')), isFalse);
+  });
+
   test('backups saved before the rota → rotation rename still load', () {
     const v1 = '{"schemaVersion":1,"days":[{"id":"d","name":"Push","position":0}],'
         '"rotas":[{"id":"r","dayId":"d","name":"A","position":0,"exercises":["Fly"]}],'

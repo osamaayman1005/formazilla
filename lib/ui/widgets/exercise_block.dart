@@ -233,7 +233,7 @@ class ExerciseBody extends StatelessWidget {
       itemBuilder: (_) => [
         const PopupMenuItem(value: 'rename', child: Text('Rename')),
         if (!inSuperset) const PopupMenuItem(value: 'superset', child: Text('Superset with…')),
-        const PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
+        const PopupMenuItem(value: 'remove', child: Text('Remove')),
       ],
     );
   }
@@ -374,7 +374,7 @@ class CardioCard extends StatelessWidget {
             },
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'rename', child: Text('Rename')),
-              PopupMenuItem(value: 'remove', child: Text('Remove from workout')),
+              PopupMenuItem(value: 'remove', child: Text('Remove')),
             ],
           ),
         ]),

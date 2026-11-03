@@ -266,7 +266,16 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
-  /// Adds an exercise to this workout only (templates are unchanged).
+  /// The template a workout edits. Changes inside a plan workout (add,
+  /// remove, reorder, rename) are permanent; one-time workouts have none.
+  Rotation? _templateOf(Session s) => s.oneTime ? null : rotationById(s.rotationId);
+
+  void _syncTemplateOrder(Session s) {
+    final t = _templateOf(s);
+    if (t != null) t.exercises = logic.followWorkoutOrder(t.exercises, [for (final e in s.exercises) e.name]);
+  }
+
+  /// Adds an exercise to this workout and (for plan workouts) its template.
   /// [cardio] marks the name as cardio from now on.
   void addExercise(Session s, String name, {bool cardio = false}) {
     final clean = name.trim();
@@ -274,6 +283,11 @@ class AppStore extends ChangeNotifier {
     _learn(clean);
     if (cardio) _markCardio(clean);
     s.exercises.add(SessionExercise(name: clean, cardio: isCardio(clean)));
+    final t = _templateOf(s);
+    if (t != null && !t.exercises.any((e) => exerciseKey(e) == exerciseKey(clean))) {
+      t.exercises.add(clean);
+      _syncTemplateOrder(s);
+    }
     _commit();
   }
 
@@ -288,14 +302,27 @@ class AppStore extends ChangeNotifier {
     _commit();
   }
 
+  /// Removes from this workout and (for plan workouts) its template.
   void removeExercise(Session s, int index) {
     final removed = s.exercises.removeAt(index);
     _dissolve(s, removed.supersetId);
+    final t = _templateOf(s);
+    if (t != null) {
+      final key = exerciseKey(removed.name);
+      t.exercises.removeWhere((e) => exerciseKey(e) == key);
+      t.supersets.removeWhere((p) => p.any((e) => exerciseKey(e) == key));
+    }
     _commit();
   }
 
+  /// Undo of [removeExercise]: puts it back in the workout and template.
   void insertExercise(Session s, int index, SessionExercise e) {
     s.exercises.insert(index.clamp(0, s.exercises.length), e);
+    final t = _templateOf(s);
+    if (t != null && !t.exercises.any((x) => exerciseKey(x) == exerciseKey(e.name))) {
+      t.exercises.add(e.name);
+      _syncTemplateOrder(s);
+    }
     _commit();
   }
 
@@ -309,6 +336,7 @@ class AppStore extends ChangeNotifier {
     s.exercises
       ..clear()
       ..addAll(moved);
+    _syncTemplateOrder(s);
     _commit();
   }
 
