@@ -94,7 +94,7 @@ void main() {
     final i = s.exercises.length - 1;
     expect(s.exercises[i].cardio, isTrue);
     expect(store.isCardio('hill sprints'), isTrue); // remembered for next time
-    expect(rotation.exercises, isNot(contains('Hill sprints'))); // this workout only
+    expect(rotation.exercises.last, 'Hill sprints'); // plan workout edits are permanent
     expect(s.hasLogs, isFalse);
 
     store.setCardioMinutes(s, i, 20);
