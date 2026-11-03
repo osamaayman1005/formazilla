@@ -154,6 +154,35 @@ void main() {
     expect(store.exercisesDone(s), 1); // second is done now, first is current
   });
 
+  test('a v3 backup (before cardio) pastes into a fresh install intact', () async {
+    const v3 = '{"schemaVersion":3,"splits":[{"id":"sp","name":"Push Pull Legs","position":0,"archived":false}],'
+        '"activeSplitId":"sp","days":[{"id":"push","splitId":"sp","name":"Push","position":0,"archived":false},'
+        '{"id":"pull","splitId":"sp","name":"Pull","position":1,"archived":false}],'
+        '"rotations":[{"id":"pa","dayId":"push","name":"A","position":0,"isStarter":true,'
+        '"exercises":["Chest press","Dips"],"supersets":[]},'
+        '{"id":"pu","dayId":"pull","name":"","position":0,"isStarter":true,"exercises":["Lat pulldown"],"supersets":[]}],'
+        '"sessions":[{"id":"s1","dayId":"push","rotationId":"pa","startedAt":"2026-11-03T09:33:22.126485",'
+        '"finishedAt":"2026-11-03T10:46:05.858710","exercises":[{"name":"Machine chest press","sets":'
+        '[{"w":40.0,"ds":false},{"w":85.0,"ds":false}]},{"name":"Dips","sets":[{"w":100.0,"ds":false}]}]}],'
+        '"library":["Machine chest press","Chest press","Dips","Lat pulldown"]}';
+    final store = await AppStore.open(MemoryStorage());
+    store.importJson(v3);
+    expect(store.history.single.exercises.length, 2);
+    expect(store.record('Machine chest press'), 85);
+    expect(store.suggestedDay.name, 'Pull');
+    expect(store.isCardio('Treadmill'), isTrue); // cardio list added
+    expect(store.exportJson(), contains('"schemaVersion":4'));
+  });
+
+  test('a v2 backup (before splits) pastes in and gets a split', () async {
+    final store = await AppStore.open(MemoryStorage());
+    store.importJson('{"days":[{"id":"d1","name":"Push","position":0}],'
+        '"rotations":[{"id":"r1","dayId":"d1","name":"","position":0,"exercises":["Dips"]}],'
+        '"sessions":[],"library":["Dips"]}');
+    expect(store.splits.single.name, 'Push Pull Legs');
+    expect(store.days.single.name, 'Push');
+  });
+
   test('backups saved before the rota → rotation rename still load', () {
     const v1 = '{"schemaVersion":1,"days":[{"id":"d","name":"Push","position":0}],'
         '"rotas":[{"id":"r","dayId":"d","name":"A","position":0,"exercises":["Fly"]}],'

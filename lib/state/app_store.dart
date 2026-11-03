@@ -619,11 +619,14 @@ class AppStore extends ChangeNotifier {
 
   /// Replaces all data. Throws FormatException on bad input.
   void importJson(String text) {
+    final AppData data;
     try {
-      _data = AppData.decode(text);
+      data = AppData.decode(text);
     } catch (e) {
       throw FormatException('Not a Formazilla backup: $e');
     }
+    _data = data;
+    _migrateToSplits(); // backups from before splits (v1/v2)
     _commit();
   }
 }
