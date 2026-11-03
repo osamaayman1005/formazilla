@@ -127,8 +127,8 @@ class ExerciseBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ex = _ex;
-    final best = store.recordBefore(ex.name, session.id);
-    final last = store.lastTime(ex.name, session.id);
+    final best = store.recordBeforeIn(session, ex.name);
+    final last = store.lastTimeIn(session, ex.name);
     final top = ex.sets.isEmpty ? null : ex.sets.map((s) => s.weight).reduce((a, b) => a > b ? a : b);
     final hitRecord = top != null && isNewRecord(top, best);
 
@@ -166,7 +166,7 @@ class ExerciseBody extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.only(right: 12),
         child: Text(
-          last.isEmpty ? 'First time — tap + to log' : 'Last   ${formatWeights(last)}',
+          last.isEmpty ? (session.oneTime ? 'Tap + to log' : 'First time — tap + to log') : 'Last   ${formatWeights(last)}',
           style: AppText.caption,
         ),
       ),
@@ -488,7 +488,7 @@ Future<void> showLinkSupersetSheet(BuildContext context, AppStore store, Session
       if (i != index && session.exercises[i].supersetId == null && !session.exercises[i].cardio) i,
   ];
   int? chosen = candidates.isEmpty ? null : candidates.firstWhere((i) => i > index, orElse: () => candidates.first);
-  var keep = true;
+  var keep = !session.oneTime; // one-time workouts have no template
 
   return showModalBottomSheet<void>(
     context: context,
@@ -523,7 +523,8 @@ Future<void> showLinkSupersetSheet(BuildContext context, AppStore store, Session
                 ),
               ),
             const SizedBox(height: AppSpace.sm),
-            SwitchListTile(
+            if (!session.oneTime)
+              SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: keep,
               onChanged: (v) => setState(() => keep = v),

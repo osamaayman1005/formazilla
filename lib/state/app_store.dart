@@ -99,26 +99,37 @@ class AppStore extends ChangeNotifier {
   Session? get activeSession => _data.sessions.where((s) => !s.isFinished).firstOrNull;
   List<Session> get history => logic.finishedNewestFirst(_data.sessions);
 
-  Day get suggestedDay => logic.suggestDay(days, _data.sessions);
-  Rotation? suggestedRotation(String dayId) => logic.suggestRotation(dayId, _data.rotations, _data.sessions);
-  DateTime? lastDoneAt(String dayId) => logic.lastDoneAt(dayId, _data.sessions);
+  /// Everything except one-time workouts (those affect nothing but History).
+  Iterable<Session> get _plan => logic.planWorkouts(_data.sessions);
+
+  Day get suggestedDay => logic.suggestDay(days, _plan);
+  Rotation? suggestedRotation(String dayId) => logic.suggestRotation(dayId, _data.rotations, _plan);
+  DateTime? lastDoneAt(String dayId) => logic.lastDoneAt(dayId, _plan);
 
   double? recordBefore(String exercise, String sessionId) =>
-      logic.personalRecord(exercise, _data.sessions, excludeSessionId: sessionId);
-  double? record(String exercise) => logic.personalRecord(exercise, _data.sessions);
+      logic.personalRecord(exercise, _plan, excludeSessionId: sessionId);
+  double? record(String exercise) => logic.personalRecord(exercise, _plan);
   List<double> lastTime(String exercise, String sessionId) =>
-      logic.lastTimeWeights(exercise, _data.sessions, excludeSessionId: sessionId);
+      logic.lastTimeWeights(exercise, _plan, excludeSessionId: sessionId);
 
-  List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_data.sessions, limit: limit);
-  List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _data.sessions);
-  List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_data.sessions);
+  /// Inside a workout: one-time workouts show no last-time values or PR hints.
+  List<double> lastTimeIn(Session s, String exercise) => s.oneTime ? const [] : lastTime(exercise, s.id);
+  double? recordBeforeIn(Session s, String exercise) => s.oneTime ? null : recordBefore(exercise, s.id);
+
+  /// "Push A", or a one-time workout's title.
+  String sessionTitle(Session s) =>
+      s.oneTime ? (s.title?.trim().isNotEmpty == true ? s.title! : 'One-time workout') : rotationLabel(s.dayId, s.rotationId);
+
+  List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_plan, limit: limit);
+  List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _plan);
+  List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_plan);
   bool isCardio(String name) => logic.isCardio(name, _data.cardio);
 
   /// Cardio names for the "+ Cardio" picker, most recently added first.
   List<String> get cardioNames => _data.cardio;
 
   List<String> searchLibrary(String q) => logic.searchExercises(q, _data.library);
-  logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _data.sessions);
+  logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _plan);
 
   // ---------- Splits and days ----------
 
@@ -220,6 +231,21 @@ class AppStore extends ChangeNotifier {
     _data.sessions.add(s);
     _commit();
     return s;
+  }
+
+  /// Starts an empty workout outside your plan (or returns the open one).
+  Session startOneTime() {
+    final existing = activeSession;
+    if (existing != null) return existing;
+    final s = Session(id: _newId(), dayId: '', rotationId: '', startedAt: DateTime.now(), oneTime: true);
+    _data.sessions.add(s);
+    _commit();
+    return s;
+  }
+
+  void renameOneTime(Session s, String title) {
+    s.title = title.trim().isEmpty ? null : title.trim();
+    _commit();
   }
 
   /// Swap the rotation mid-session: keeps logged exercises, adds missing ones.
@@ -421,6 +447,12 @@ class AppStore extends ChangeNotifier {
   List<logic.RecordEvent> finishSession(Session s) {
     final records = <logic.RecordEvent>[];
     s.exercises.removeWhere((e) => !e.logged);
+    if (s.oneTime) {
+      // Affects nothing: no PRs from one-time workouts.
+      s.finishedAt = DateTime.now();
+      _commit();
+      return records;
+    }
     for (final e in s.exercises) {
       if (e.sets.isEmpty) continue; // cardio: time only, no PRs yet
       final before = recordBefore(e.name, s.id);
@@ -514,7 +546,7 @@ class AppStore extends ChangeNotifier {
         weights: weights
             ? {
                 for (final e in r.exercises)
-                  if (logic.lastTimeWeights(e, _data.sessions).isNotEmpty) e: logic.lastTimeWeights(e, _data.sessions),
+                  if (lastTime(e, '').isNotEmpty) e: lastTime(e, ''),
               }
             : const {},
       );

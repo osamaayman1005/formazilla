@@ -45,7 +45,13 @@ class HistoryScreen extends StatelessWidget {
                 child: Row(children: [
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(store.rotationLabel(s.dayId, s.rotationId), style: AppText.cardTitle),
+                      Row(children: [
+                        Flexible(child: Text(store.sessionTitle(s), style: AppText.cardTitle, overflow: TextOverflow.ellipsis)),
+                        if (s.oneTime) ...[
+                          const SizedBox(width: 6),
+                          const Pill('One-time', color: AppColors.accentLight, outline: AppColors.accentLight, fontSize: 11),
+                        ],
+                      ]),
                       const SizedBox(height: 2),
                       Text(
                         '${formatDayDate(s.finishedAt!)} · ${formatDuration(s.finishedAt!.difference(s.startedAt))}',

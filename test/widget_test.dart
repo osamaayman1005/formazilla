@@ -118,6 +118,30 @@ void main() {
     expect(s.exercises.map((e) => e.cardio), [true, false]);
   });
 
+  test('a one-time workout affects nothing but History', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final push = store.rotationsOf(store.days.first.id).first;
+    final s1 = store.startSession(push);
+    store.addSet(s1, 0, 60);
+    store.finishSession(s1);
+    expect(store.suggestedDay.name, 'Pull');
+
+    final extra = store.startOneTime();
+    expect(extra.exercises, isEmpty);
+    expect(store.sessionTitle(extra), 'One-time workout');
+    store.renameOneTime(extra, 'Hotel gym');
+    store.addExercise(extra, 'Chest press');
+    expect(store.lastTimeIn(extra, 'Chest press'), isEmpty); // no suggestions inside
+    store.addSet(extra, 0, 100);
+    expect(store.finishSession(extra), isEmpty); // no PR
+
+    expect(store.suggestedDay.name, 'Pull'); // plan unchanged
+    expect(store.record('Chest press'), 60);
+    final s2 = store.startSession(push);
+    expect(store.lastTimeIn(s2, 'Chest press'), [60]); // last plan workout, not the extra
+    expect(store.history.map(store.sessionTitle), ['Hotel gym', 'Push A']);
+  });
+
   test('backups saved before the rota → rotation rename still load', () {
     const v1 = '{"schemaVersion":1,"days":[{"id":"d","name":"Push","position":0}],'
         '"rotas":[{"id":"r","dayId":"d","name":"A","position":0,"exercises":["Fly"]}],'

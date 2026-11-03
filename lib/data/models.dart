@@ -143,6 +143,11 @@ class Session {
   DateTime? finishedAt;
   List<SessionExercise> exercises;
 
+  /// A one-time workout: outside any plan (empty dayId/rotationId). It shows
+  /// in History but affects nothing else — no suggestion, PRs or last-time.
+  bool oneTime;
+  String? title;
+
   Session({
     required this.id,
     required this.dayId,
@@ -150,6 +155,8 @@ class Session {
     required this.startedAt,
     this.finishedAt,
     List<SessionExercise>? exercises,
+    this.oneTime = false,
+    this.title,
   }) : exercises = exercises ?? [];
 
   bool get isFinished => finishedAt != null;
@@ -169,6 +176,8 @@ class Session {
         'startedAt': startedAt.toIso8601String(),
         'finishedAt': finishedAt?.toIso8601String(),
         'exercises': exercises.map((e) => e.toJson()).toList(),
+        if (oneTime) 'oneTime': true,
+        if (title != null) 'title': title,
       };
 
   factory Session.fromJson(Map<String, dynamic> j) => Session(
@@ -177,6 +186,8 @@ class Session {
         rotationId: (j['rotationId'] ?? j['rotaId']) as String, // 'rotaId' = schema v1
         startedAt: DateTime.parse(j['startedAt'] as String),
         finishedAt: j['finishedAt'] == null ? null : DateTime.parse(j['finishedAt'] as String),
+        oneTime: (j['oneTime'] as bool?) ?? false,
+        title: j['title'] as String?,
         exercises: (j['exercises'] as List)
             .map((e) => SessionExercise.fromJson(e as Map<String, dynamic>))
             .toList(),

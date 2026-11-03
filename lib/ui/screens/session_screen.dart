@@ -13,6 +13,7 @@ import '../widgets/common.dart';
 import '../widgets/exercise_block.dart';
 import '../widgets/exercise_input.dart';
 import '../widgets/motion.dart';
+import '../widgets/split_sheet.dart' show askText;
 import '../widgets/store_scope.dart';
 
 /// Full-screen workout logger. Everything autosaves; leaving keeps the session
@@ -57,8 +58,16 @@ class _SessionScreenState extends State<SessionScreen> {
       body: SafeArea(
         child: Column(children: [
           _Header(
-            title: store.rotationLabel(session.dayId, session.rotationId),
-            subtitle: '${formatDuration(elapsed)} · $done of ${session.exercises.length} done',
+            title: store.sessionTitle(session),
+            onTitleTap: session.oneTime
+                ? () async {
+                    final name = await askText(context, title: 'Name this workout', initial: session.title, hint: 'Hotel gym');
+                    if (name != null) store.renameOneTime(session, name);
+                  }
+                : null,
+            subtitle: session.oneTime
+                ? '${formatDuration(elapsed)} · One-time'
+                : '${formatDuration(elapsed)} · $done of ${session.exercises.length} done',
             rotations: rotations,
             rotationId: session.rotationId,
             onRotation: (r) => store.switchRotation(session, r),
@@ -147,7 +156,7 @@ class _SessionScreenState extends State<SessionScreen> {
     final duration = DateTime.now().difference(session.startedAt);
     final sets = session.setCount;
     final cardio = session.cardioMinutes;
-    final label = store.rotationLabel(session.dayId, session.rotationId);
+    final label = store.sessionTitle(session);
     final records = store.finishSession(session);
     HapticFeedback.mediumImpact();
     if (!context.mounted) return;
@@ -172,6 +181,7 @@ class _Header extends StatelessWidget {
     required this.rotationId,
     required this.onRotation,
     required this.onFinish,
+    this.onTitleTap,
   });
 
   final String title;
@@ -180,6 +190,7 @@ class _Header extends StatelessWidget {
   final String rotationId;
   final ValueChanged<Rotation> onRotation;
   final VoidCallback onFinish;
+  final VoidCallback? onTitleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +205,16 @@ class _Header extends StatelessWidget {
         ),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: AppText.title.copyWith(fontSize: 22), overflow: TextOverflow.ellipsis),
+            GestureDetector(
+              onTap: onTitleTap,
+              child: Row(children: [
+                Flexible(child: Text(title, style: AppText.title.copyWith(fontSize: 22), overflow: TextOverflow.ellipsis)),
+                if (onTitleTap != null) ...[
+                  const SizedBox(width: 6),
+                  const Icon(Icons.edit_outlined, size: 16, color: AppColors.muted),
+                ],
+              ]),
+            ),
             Text(subtitle, style: AppText.caption),
           ]),
         ),

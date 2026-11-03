@@ -81,6 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 : 'You picked ${store.dayById(dayId)?.name}. ${suggested.name} is still suggested.',
             style: AppText.small,
           ),
+          const SizedBox(height: AppSpace.xl),
+          const SectionLabel('Outside your plan'),
+          _OneTimeCard(onTap: () => openSession(context, store.startOneTime())),
         ],
         const SizedBox(height: AppSpace.xl),
         _RecentRecords(store: store),
@@ -329,7 +332,7 @@ class _ResumeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = store.rotationLabel(session.dayId, session.rotationId);
+    final label = store.sessionTitle(session);
     final mins = DateTime.now().difference(session.startedAt).inMinutes;
     return Container(
       padding: const EdgeInsets.all(AppSpace.xl),
@@ -401,5 +404,42 @@ class _RecentRecords extends StatelessWidget {
           ]),
         ),
     ]);
+  }
+}
+
+/// Starts a one-time workout: outside the plan, affects nothing but History.
+class _OneTimeCard extends StatelessWidget {
+  const _OneTimeCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: DashedBorder(
+          radius: AppRadius.card,
+          color: AppColors.line,
+          child: const Padding(
+            padding: EdgeInsets.all(14),
+            child: Row(children: [
+              Icon(Icons.bolt_outlined, color: AppColors.accentLight, size: 24),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('One-time workout', style: AppText.cardTitle),
+                  SizedBox(height: 2),
+                  Text('Hotel gym, evening cardio, arms day… Doesn’t touch your plan.', style: AppText.small),
+                ]),
+              ),
+              Icon(Icons.chevron_right, color: AppColors.muted),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 }

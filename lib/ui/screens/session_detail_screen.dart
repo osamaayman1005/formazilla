@@ -21,7 +21,7 @@ class SessionDetailScreen extends StatelessWidget {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text(store.rotationLabel(s.dayId, s.rotationId)),
+        title: Text(store.sessionTitle(s)),
         actions: [
           IconButton(
             tooltip: 'Delete workout',

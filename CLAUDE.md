@@ -32,6 +32,7 @@ test/                       logic unit tests + widget/store tests
 - UI reads via `StoreScope.of(context)` and changes data only through `AppStore` methods.
 - Colours, spacing, radii and text styles come from `lib/core/theme.dart`. No hardcoded colours in widgets.
 - Weights are unitless numbers stored exactly as typed. Never convert units.
+- A one-time workout affects nothing but History: the store reads suggestions, PRs, last-time values and Progress from `planWorkouts` only.
 - Cardio is any name in `AppData.cardio`; it's logged as minutes (one time button), never as sets, and has no PRs or supersets.
 - Suggestions never enforce: any day/rotation is one tap away.
 - A **split** holds ordered **days**; each day has 1+ **rotations**. Only the active split's history drives the next-day suggestion. Removing a split/day archives it so past workouts keep their names.
@@ -41,7 +42,7 @@ test/                       logic unit tests + widget/store tests
 ## Roadmap
 
 - Custom splits: `docs/plans/custom-splits.md` (phases 1–4 done; first-launch picker open)
-- One-time workouts (from Home, not part of any plan, shown in History): `docs/plans/one-time-workouts.md`. Exercises added mid-workout already stay in that workout only. Rename is always permanent.
+- One-time workouts: built (`Session.oneTime`). Exercises added mid-workout stay in that workout only. Rename is always permanent.
 
 ## Build
 
