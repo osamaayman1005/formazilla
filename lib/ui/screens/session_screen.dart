@@ -50,7 +50,7 @@ class _SessionScreenState extends State<SessionScreen> {
       return const Scaffold(body: Center(child: Text('Workout closed', style: AppText.caption)));
     }
     final rotations = store.rotationsOf(session.dayId);
-    final done = session.exercises.where((e) => e.logged).length;
+    final done = store.exercisesDone(session);
     final elapsed = DateTime.now().difference(session.startedAt);
     final groups = groupExercises(session);
 

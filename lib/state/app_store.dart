@@ -125,6 +125,9 @@ class AppStore extends ChangeNotifier {
   List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_data.sessions, limit: limit);
   List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _plan);
   List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_plan);
+  /// "5 of 7 done": the exercise you're on isn't done until you move on.
+  int exercisesDone(Session s) => logic.exercisesDone(s);
+
   bool isCardio(String name) => logic.isCardio(name, _data.cardio);
 
   /// Cardio names for the "+ Cardio" picker, most recently added first.
@@ -281,6 +284,7 @@ class AppStore extends ChangeNotifier {
   /// Sets (or clears, with null) the time logged for a cardio exercise.
   void setCardioMinutes(Session s, int index, double? minutes) {
     s.exercises[index].minutes = minutes;
+    if (minutes != null) s.current = s.exercises[index].name;
     _commit();
   }
 
@@ -322,6 +326,7 @@ class AppStore extends ChangeNotifier {
       for (final e in session.exercises) {
         e.name = swap(e.name);
       }
+      if (session.current != null) session.current = swap(session.current!);
     }
     for (final r in _data.rotations) {
       r.exercises = r.exercises.map(swap).toList();
@@ -411,6 +416,7 @@ class AppStore extends ChangeNotifier {
 
   void addSet(Session s, int exIndex, double weight, {bool dropSet = false}) {
     s.exercises[exIndex].sets.add(SetLog(weight: weight, dropSet: dropSet));
+    s.current = s.exercises[exIndex].name;
     _justLogged = (sessionId: s.id, ex: exIndex, set: s.exercises[exIndex].sets.length - 1, at: DateTime.now());
     _commit();
   }

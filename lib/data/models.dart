@@ -148,6 +148,9 @@ class Session {
   bool oneTime;
   String? title;
 
+  /// The exercise you're on (the one you logged most recently).
+  String? current;
+
   Session({
     required this.id,
     required this.dayId,
@@ -157,6 +160,7 @@ class Session {
     List<SessionExercise>? exercises,
     this.oneTime = false,
     this.title,
+    this.current,
   }) : exercises = exercises ?? [];
 
   bool get isFinished => finishedAt != null;
@@ -178,6 +182,7 @@ class Session {
         'exercises': exercises.map((e) => e.toJson()).toList(),
         if (oneTime) 'oneTime': true,
         if (title != null) 'title': title,
+        if (current != null) 'cur': current,
       };
 
   factory Session.fromJson(Map<String, dynamic> j) => Session(
@@ -188,6 +193,7 @@ class Session {
         finishedAt: j['finishedAt'] == null ? null : DateTime.parse(j['finishedAt'] as String),
         oneTime: (j['oneTime'] as bool?) ?? false,
         title: j['title'] as String?,
+        current: j['cur'] as String?,
         exercises: (j['exercises'] as List)
             .map((e) => SessionExercise.fromJson(e as Map<String, dynamic>))
             .toList(),

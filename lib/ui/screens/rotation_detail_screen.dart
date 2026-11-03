@@ -116,10 +116,8 @@ class RotationDetailScreen extends StatelessWidget {
               PrimaryButton('Start $label', onPressed: () {
                 final active = store.activeSession;
                 if (active != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: const Text('Finish your current workout first'),
-                    action: SnackBarAction(label: 'Resume', onPressed: () => openSession(context, active)),
-                  ));
+                  showActionSnackBar(context, 'Finish your current workout first',
+                      action: 'Resume', onAction: () => openSession(context, active));
                   return;
                 }
                 openSession(context, store.startSession(rotation), replace: true);

@@ -142,6 +142,18 @@ void main() {
     expect(store.history.map(store.sessionTitle), ['Hotel gym', 'Push A']);
   });
 
+  test('an exercise is done once you move on to another one', () async {
+    final store = await AppStore.open(MemoryStorage());
+    final s = store.startSession(store.rotationsOf(store.days.first.id).first);
+    store.addSet(s, 0, 60);
+    store.addSet(s, 0, 65);
+    expect(store.exercisesDone(s), 0); // still on the first exercise
+    store.addSet(s, 1, 20);
+    expect(store.exercisesDone(s), 1); // moved on → first is done
+    store.addSet(s, 0, 70); // went back to the first
+    expect(store.exercisesDone(s), 1); // second is done now, first is current
+  });
+
   test('backups saved before the rota → rotation rename still load', () {
     const v1 = '{"schemaVersion":1,"days":[{"id":"d","name":"Push","position":0}],'
         '"rotas":[{"id":"r","dayId":"d","name":"A","position":0,"exercises":["Fly"]}],'

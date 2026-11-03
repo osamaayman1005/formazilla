@@ -234,3 +234,18 @@ class EmptyState extends StatelessWidget {
     );
   }
 }
+
+/// A snackbar with an action (e.g. Undo) that still closes on its own.
+/// Newer Flutter keeps action snackbars open until tapped; that left
+/// "… removed · Undo" stuck over the workout.
+void showActionSnackBar(BuildContext context, String message,
+    {required String action, required VoidCallback onAction, Duration duration = const Duration(seconds: 4)}) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.hideCurrentSnackBar();
+  final controller = messenger.showSnackBar(SnackBar(
+    content: Text(message),
+    duration: duration,
+    action: SnackBarAction(label: action, onPressed: onAction),
+  ));
+  Future<void>.delayed(duration, controller.close);
+}

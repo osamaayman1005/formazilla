@@ -166,7 +166,11 @@ class ExerciseBody extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.only(right: 12),
         child: Text(
-          last.isEmpty ? (session.oneTime ? 'Tap + to log' : 'First time — tap + to log') : 'Last   ${formatWeights(last)}',
+          last.isNotEmpty
+              ? 'Last   ${formatWeights(last)}'
+              : ex.sets.isEmpty
+                  ? (session.oneTime ? 'Tap + to log' : 'First time — tap + to log')
+                  : 'First time',
           style: AppText.caption,
         ),
       ),
@@ -222,10 +226,8 @@ class ExerciseBody extends StatelessWidget {
           case 'remove':
             final removed = _ex;
             store.removeExercise(session, index);
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('${removed.name} removed'),
-              action: SnackBarAction(label: 'Undo', onPressed: () => store.insertExercise(session, index, removed)),
-            ));
+            showActionSnackBar(context, '${removed.name} removed',
+                action: 'Undo', onAction: () => store.insertExercise(session, index, removed));
         }
       },
       itemBuilder: (_) => [
@@ -366,10 +368,8 @@ class CardioCard extends StatelessWidget {
                 case 'remove':
                   final removed = ex;
                   store.removeExercise(session, index);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('${removed.name} removed'),
-                    action: SnackBarAction(label: 'Undo', onPressed: () => store.insertExercise(session, index, removed)),
-                  ));
+                  showActionSnackBar(context, '${removed.name} removed',
+                      action: 'Undo', onAction: () => store.insertExercise(session, index, removed));
               }
             },
             itemBuilder: (_) => const [

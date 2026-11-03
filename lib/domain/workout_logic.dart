@@ -193,6 +193,13 @@ int supersetNext(List<int> setCounts) {
   return best;
 }
 
+/// Exercises finished so far: logged, and you've moved on from them (logged
+/// something on another exercise since). The one you're on doesn't count yet.
+int exercisesDone(Session s) {
+  final current = s.current == null ? null : exerciseKey(s.current!);
+  return s.exercises.where((e) => e.logged && exerciseKey(e.name) != current).length;
+}
+
 /// Whether [name] is cardio (logged as time), given your cardio names.
 bool isCardio(String name, Iterable<String> cardio) {
   final key = exerciseKey(name);
