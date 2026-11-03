@@ -7,7 +7,7 @@ Offline Flutter gym logger: PPL days, A/B rotations, one-tap set logging, automa
 
 ## Architecture (v1 as built)
 
-v1 deliberately uses zero codegen and two small dependencies (`path_provider`, `share_plus`) so it builds reliably in CI.
+v1 deliberately uses zero codegen and few dependencies (`path_provider`, `share_plus`, `qr_flutter`, `mobile_scanner`) so it builds reliably in CI.
 The plan's Drift/Riverpod stack is a later migration; the layers below make that a contained change.
 
 ```
@@ -17,7 +17,7 @@ lib/
   core/                     theme tokens (theme.dart), formatting (format.dart)
   data/                     models, seed data, storage (JSON file; MemoryStorage for tests)
   domain/workout_logic.dart pure rules: next day/rotation, PRs, last-time values, search
-  domain/shared_plan.dart   share/import format: readable message + `FZ1:` code line
+  domain/shared_plan.dart   share/import format: readable message + `FZ2:` code (gzip; also the QR content)
   state/app_store.dart      ChangeNotifier; the ONLY place data changes; autosaves
   ui/
     navigation.dart         all routes

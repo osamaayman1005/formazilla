@@ -3,6 +3,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:io' show gzip;
 
 import '../core/format.dart';
 
@@ -97,19 +98,24 @@ class SharedPlan {
 
 String rotationTitle(String day, String rotation) => rotation.isEmpty ? day : '$day $rotation';
 
-const planCodePrefix = 'FZ1:';
+/// FZ2 = gzipped JSON (about half the size, so a whole split fits an easy
+/// QR). FZ1 = plain JSON from the first share version; still readable.
+const planCodePrefix = 'FZ2:';
 
-/// The code line the app reads back.
-String planCode(SharedPlan plan) => planCodePrefix + base64Url.encode(utf8.encode(jsonEncode(plan.toJson())));
+/// The code line (and QR content) the app reads back.
+String planCode(SharedPlan plan) =>
+    planCodePrefix + base64Url.encode(gzip.encode(utf8.encode(jsonEncode(plan.toJson()))));
 
-/// Finds a plan code anywhere in [text] (e.g. a whole pasted chat message).
-/// Null when there is none or it's damaged.
+/// Finds a plan code anywhere in [text] (a pasted chat message or a scanned
+/// QR). Null when there is none or it's damaged.
 SharedPlan? readPlan(String? text) {
   if (text == null) return null;
-  final match = RegExp(r'FZ1:([A-Za-z0-9_\-]+=*)').firstMatch(text);
+  final match = RegExp(r'FZ([12]):([A-Za-z0-9_\-]+=*)').firstMatch(text);
   if (match == null) return null;
   try {
-    final json = jsonDecode(utf8.decode(base64Url.decode(match.group(1)!))) as Map<String, dynamic>;
+    final bytes = base64Url.decode(match.group(2)!);
+    final raw = match.group(1) == '2' ? gzip.decode(bytes) : bytes;
+    final json = jsonDecode(utf8.decode(raw)) as Map<String, dynamic>;
     final plan = SharedPlan.fromJson(json);
     if (plan.days.isEmpty || plan.days.any((d) => d.rotations.isEmpty)) return null;
     return plan;

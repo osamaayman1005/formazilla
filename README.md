@@ -44,7 +44,7 @@ Formazilla keeps the spreadsheet's speed and drops the friction.
 - **⚡ One-time workouts** — hotel gym or an evening extra, started from Home. It's kept in History and can set PRs, but never changes your plan or suggestions.
 - **🔗 Supersets** — link two exercises; they sit in one card as A and B, and "Next up" alternates for you. Save the pair to the template so it's linked every time.
 - **📸 PR share card** — hit a PR, tap Share: a story-size navy card with your number, gain and progress bars, ready for WhatsApp or Instagram.
-- **📤 Share a plan** — send one rotation (Push A) or your whole split as an image card, plain text, or a Formazilla plan your friend imports with one tap. No account or server: the plan rides inside the chat message.
+- **📤 Share a plan** — send one rotation (Push A) or your whole split as a QR code your gym buddy scans, an image card, plain text, or a Formazilla plan they import with one tap. No account or server: the plan rides inside the QR or chat message.
 - **✨ Feels alive** — ghosts fill in when logged, new sets pop, PRs glow with a haptic thump, the day picker slides and charts grow in. All under ~0.4s, never blocking a tap, and off when the phone's "Remove animations" is on.
 - **🔢 Gym-friendly keypad** — big keys, `±2.5` / `±5` quick buttons, drop-set toggle. No system keyboard popping up.
 - **🔎 Autocomplete** — ~60 standard exercise names built in; anything new you type is remembered.
@@ -107,7 +107,7 @@ lib/
 
 **Design choices**
 
-- **Zero code generation, two small dependencies** (`path_provider`, `share_plus`). Builds are fast and reliable.
+- **Zero code generation, few dependencies** (`path_provider`, `share_plus`, `qr_flutter`, `mobile_scanner`). Builds are fast and reliable.
 - **Storage behind an interface** — swapping the JSON file for SQLite/Drift touches one file.
 - **Atomic saves** — writes go to a temp file then rename, so a crash never corrupts data.
 - **Design tokens in one file** — every colour, radius and text style comes from `core/theme.dart`.

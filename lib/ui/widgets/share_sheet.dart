@@ -12,13 +12,13 @@ import '../../state/app_store.dart';
 import '../navigation.dart';
 import 'common.dart';
 
-enum ShareFormat { image, plan, text }
+enum ShareFormat { qr, image, plan, text }
 
 /// Pick what (this rotation / whole split) and how (image / plan / text).
 /// Without a [rotation] it shares the whole split.
 Future<void> showShareSheet(BuildContext context, AppStore store, {Rotation? rotation}) {
   var wholeSplit = rotation == null;
-  var format = ShareFormat.image;
+  var format = ShareFormat.qr;
   var weights = false;
 
   return showModalBottomSheet<void>(
@@ -45,6 +45,12 @@ Future<void> showShareSheet(BuildContext context, AppStore store, {Rotation? rot
             ],
             const SectionLabel('How'),
             _Choice(
+              title: 'QR code',
+              subtitle: 'Friend next to you scans it',
+              selected: format == ShareFormat.qr,
+              onTap: () => setState(() => format = ShareFormat.qr),
+            ),
+            _Choice(
               title: 'Image card',
               subtitle: 'For stories and the gym group',
               selected: format == ShareFormat.image,
@@ -62,7 +68,7 @@ Future<void> showShareSheet(BuildContext context, AppStore store, {Rotation? rot
               selected: format == ShareFormat.text,
               onTap: () => setState(() => format = ShareFormat.text),
             ),
-            if (format != ShareFormat.plan)
+            if (format == ShareFormat.image || format == ShareFormat.text)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: weights,
@@ -70,10 +76,11 @@ Future<void> showShareSheet(BuildContext context, AppStore store, {Rotation? rot
                 title: const Text('Include my last weights', style: AppText.body),
               ),
             const SizedBox(height: AppSpace.sm),
-            PrimaryButton('Share', onPressed: () {
+            PrimaryButton(format == ShareFormat.qr ? 'Show QR' : 'Share', onPressed: () {
+              final withWeights = weights && (format == ShareFormat.image || format == ShareFormat.text);
               final plan = wholeSplit || rotation == null
-                  ? store.planForSplit(weights: weights && format != ShareFormat.plan)
-                  : store.planForRotation(rotation, weights: weights && format != ShareFormat.plan);
+                  ? store.planForSplit(weights: withWeights)
+                  : store.planForRotation(rotation, weights: withWeights);
               Navigator.pop(c);
               _share(context, plan, format);
             }),
@@ -86,6 +93,8 @@ Future<void> showShareSheet(BuildContext context, AppStore store, {Rotation? rot
 
 Future<void> _share(BuildContext context, SharedPlan plan, ShareFormat format) async {
   switch (format) {
+    case ShareFormat.qr:
+      await openPlanQr(context, plan);
     case ShareFormat.image:
       await openPlanCard(context, plan);
     case ShareFormat.plan:
@@ -95,11 +104,46 @@ Future<void> _share(BuildContext context, SharedPlan plan, ShareFormat format) a
   }
 }
 
-/// Reads a shared plan from the clipboard and asks where to add it.
-Future<void> importPlanFromClipboard(BuildContext context, AppStore store) async {
-  final data = await Clipboard.getData(Clipboard.kTextPlain);
-  final plan = readPlan(data?.text);
-  if (!context.mounted) return;
+/// Import plan: scan a friend's QR, or paste a copied Formazilla message.
+Future<void> showImportOptions(BuildContext context, AppStore store) async {
+  final how = await showModalBottomSheet<String>(
+    context: context,
+    builder: (c) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpace.xl, 0, AppSpace.xl, AppSpace.lg),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Import plan', style: AppText.title),
+          const SizedBox(height: AppSpace.md),
+          _Choice(
+            title: 'Scan QR code',
+            subtitle: 'From a friend’s screen',
+            icon: Icons.qr_code_scanner,
+            onTap: () => Navigator.pop(c, 'scan'),
+          ),
+          _Choice(
+            title: 'Paste from chat',
+            subtitle: 'You copied a Formazilla message',
+            icon: Icons.content_paste,
+            onTap: () => Navigator.pop(c, 'paste'),
+          ),
+        ]),
+      ),
+    ),
+  );
+  if (how == null || !context.mounted) return;
+  if (how == 'scan') {
+    final text = await scanPlanQr(context);
+    if (text == null || !context.mounted) return;
+    await _importPlan(context, store, readPlan(text));
+  } else {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!context.mounted) return;
+    await _importPlan(context, store, readPlan(data?.text));
+  }
+}
+
+/// Asks where a shared plan goes, then adds it.
+Future<void> _importPlan(BuildContext context, AppStore store, SharedPlan? plan) async {
   if (plan == null) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('No plan found. Copy the whole Formazilla message from the chat, then tap Import.'),
@@ -191,14 +235,15 @@ Future<void> importPlanFromClipboard(BuildContext context, AppStore store) async
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
 
-/// A radio-style option card.
+/// A radio-style option card (or, with [icon], a plain tappable row).
 class _Choice extends StatelessWidget {
-  const _Choice({required this.title, required this.subtitle, required this.selected, required this.onTap});
+  const _Choice({required this.title, required this.subtitle, this.selected = false, required this.onTap, this.icon});
 
   final String title;
   final String subtitle;
   final bool selected;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -210,9 +255,9 @@ class _Choice extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(children: [
           Icon(
-            selected ? Icons.radio_button_checked : Icons.radio_button_off,
-            color: selected ? AppColors.accentLight : AppColors.muted,
-            size: 20,
+            icon ?? (selected ? Icons.radio_button_checked : Icons.radio_button_off),
+            color: selected || icon != null ? AppColors.accentLight : AppColors.muted,
+            size: icon != null ? 24 : 20,
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -39,6 +39,21 @@ void main() {
       expect(readPlan(text), isNull);
     });
 
+    test('codes from the first share version (FZ1) still read', () {
+      const fz1 = 'FZ1:eyJ2IjoxLCJuIjoiUHVzaCIsInNwbGl0IjpmYWxzZSwiZCI6W3sibiI6IlB1c2giLCJyIjpbeyJuIjoiQSIsImUiOlsiRGlwcyJdfV19XX0=';
+      final plan = readPlan('look: $fz1')!;
+      expect(plan.title, 'Push A');
+      expect(plan.rotation.exercises, ['Dips']);
+    });
+
+    test('a whole split fits an easy-to-scan QR', () async {
+      final store = await AppStore.open(MemoryStorage());
+      final code = planCode(store.planForSplit());
+      expect(code, startsWith('FZ2:'));
+      expect(code.length, lessThan(800));
+      expect(readPlan(code)!.summary, '3 days · 5 rotations');
+    });
+
     test('nothing or a damaged code reads as no plan', () {
       expect(readPlan(null), isNull);
       expect(readPlan('just a message'), isNull);

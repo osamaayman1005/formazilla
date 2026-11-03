@@ -29,7 +29,7 @@ class TemplatesScreen extends StatelessWidget {
             label: const Text('Share split', style: TextStyle(color: AppColors.accentLight)),
           ),
           TextButton.icon(
-            onPressed: () => importPlanFromClipboard(context, store),
+            onPressed: () => showImportOptions(context, store),
             icon: const Icon(Icons.download_outlined, size: 18, color: AppColors.accentLight),
             label: const Text('Import plan', style: TextStyle(color: AppColors.accentLight)),
           ),
