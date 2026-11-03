@@ -8,10 +8,11 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import 'models.dart';
+import 'seed.dart' show cardioPresets;
 
-/// v2 renamed "rota" to "rotation"; v3 added splits. Older files still load
-/// (the store migrates them on open).
-const schemaVersion = 3;
+/// v2 renamed "rota" to "rotation"; v3 added splits; v4 added cardio. Older
+/// files still load (the store migrates them on open).
+const schemaVersion = 4;
 
 /// Everything the app stores.
 class AppData {
@@ -22,6 +23,9 @@ class AppData {
   List<Session> sessions;
   List<String> library;
 
+  /// Names logged as time (cardio) rather than weight.
+  List<String> cardio;
+
   AppData({
     List<Split>? splits,
     this.activeSplitId,
@@ -29,7 +33,9 @@ class AppData {
     required this.rotations,
     required this.sessions,
     required this.library,
-  }) : splits = splits ?? [];
+    List<String>? cardio,
+  })  : splits = splits ?? [],
+        cardio = cardio ?? [...cardioPresets];
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': schemaVersion,
@@ -39,6 +45,7 @@ class AppData {
         'rotations': rotations.map((r) => r.toJson()).toList(),
         'sessions': sessions.map((s) => s.toJson()).toList(),
         'library': library,
+        'cardio': cardio,
       };
 
   factory AppData.fromJson(Map<String, dynamic> j) => AppData(
@@ -50,6 +57,7 @@ class AppData {
             .toList(),
         sessions: (j['sessions'] as List).map((e) => Session.fromJson(e as Map<String, dynamic>)).toList(),
         library: (j['library'] as List).cast<String>().toList(),
+        cardio: (j['cardio'] as List?)?.cast<String>().toList(), // null before v4 → presets
       );
 
   String encode() => jsonEncode(toJson());

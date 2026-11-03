@@ -93,6 +93,9 @@ String presetSummary(String preset) => (splitPresets[preset]?.keys ?? const <Str
 
 const defaultSplit = 'Push Pull Legs';
 
+/// Cardio offered by "+ Cardio". Any name you type can be cardio too.
+const cardioPresets = ['Treadmill', 'Stationary bike', 'Elliptical', 'Stair climber', 'Rowing machine', 'Jump rope'];
+
 /// Extra names offered by autocomplete.
 const extraLibrary = [
   'Flat dumbbell press', 'Decline chest press', 'Smith machine bench press', 'Cable fly (low to high)',

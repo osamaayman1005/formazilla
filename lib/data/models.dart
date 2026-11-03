@@ -108,17 +108,29 @@ class SessionExercise {
   /// Exercises sharing the same id are done as a superset (alternating).
   String? supersetId;
 
-  SessionExercise({required this.name, List<SetLog>? sets, this.supersetId}) : sets = sets ?? [];
+  /// Cardio is logged as time (minutes) instead of weight sets.
+  bool cardio;
+  double? minutes;
+
+  SessionExercise({required this.name, List<SetLog>? sets, this.supersetId, this.cardio = false, this.minutes})
+      : sets = sets ?? [];
+
+  /// Something was logged: a set, or cardio time.
+  bool get logged => cardio ? minutes != null : sets.isNotEmpty;
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'sets': sets.map((s) => s.toJson()).toList(),
         if (supersetId != null) 'ss': supersetId,
+        if (cardio) 'c': true,
+        if (minutes != null) 'min': minutes,
       };
 
   factory SessionExercise.fromJson(Map<String, dynamic> j) => SessionExercise(
         name: j['name'] as String,
         supersetId: j['ss'] as String?,
+        cardio: (j['c'] as bool?) ?? false,
+        minutes: (j['min'] as num?)?.toDouble(),
         sets: (j['sets'] as List).map((e) => SetLog.fromJson(e as Map<String, dynamic>)).toList(),
       );
 }
@@ -143,6 +155,12 @@ class Session {
   bool get isFinished => finishedAt != null;
 
   int get setCount => exercises.fold(0, (a, e) => a + e.sets.length);
+
+  /// Total cardio minutes logged.
+  double get cardioMinutes => exercises.fold(0.0, (a, e) => a + (e.minutes ?? 0));
+
+  /// Anything logged at all (sets or cardio time).
+  bool get hasLogs => exercises.any((e) => e.logged);
 
   Map<String, dynamic> toJson() => {
         'id': id,
