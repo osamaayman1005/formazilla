@@ -1,0 +1,360 @@
+{
+ "schemaVersion": 2,
+ "generatedAt": "2026-11-05T06:54:20.368702+00:00",
+ "title": "Design System: Formazilla",
+ "extensions": {
+  "colorMeta": {
+   "page": {
+    "role": "neutral",
+    "displayName": "Night Page",
+    "canonical": "#0A1224",
+    "tonalRamp": [
+     "#111622",
+     "#1D273F",
+     "#293C66",
+     "#335299",
+     "#416BC8",
+     "#7C96D0",
+     "#B9C5DF",
+     "#E8EBF2"
+    ]
+   },
+   "card": {
+    "role": "neutral",
+    "displayName": "Card Navy",
+    "canonical": "#141E36",
+    "tonalRamp": [
+     "#131720",
+     "#20283C",
+     "#2F3D60",
+     "#3C5590",
+     "#4E6EBC",
+     "#8498C8",
+     "#BCC6DC",
+     "#E9EBF1"
+    ]
+   },
+   "chip": {
+    "role": "neutral",
+    "displayName": "Chip Navy",
+    "canonical": "#1E2A46",
+    "tonalRamp": [
+     "#14171F",
+     "#22293A",
+     "#323F5D",
+     "#42578A",
+     "#5571B4",
+     "#889AC4",
+     "#BEC7DA",
+     "#E9ECF1"
+    ]
+   },
+   "outline": {
+    "role": "neutral",
+    "displayName": "Slot Outline",
+    "canonical": "#5B6A8F",
+    "tonalRamp": [
+     "#15181E",
+     "#252A37",
+     "#374158",
+     "#4A5B82",
+     "#5F76AA",
+     "#8F9DBD",
+     "#C1C8D7",
+     "#EAECF0"
+    ]
+   },
+   "paper": {
+    "role": "neutral",
+    "displayName": "Sticker Paper",
+    "canonical": "#F5F7FC",
+    "tonalRamp": [
+     "#121621",
+     "#1E273E",
+     "#2A3B65",
+     "#355197",
+     "#4469C5",
+     "#7E95CE",
+     "#BAC4DE",
+     "#E8EBF2"
+    ]
+   },
+   "muted": {
+    "role": "neutral",
+    "displayName": "Muted Ink",
+    "canonical": "#949FBD",
+    "tonalRamp": [
+     "#16181D",
+     "#272B35",
+     "#3B4154",
+     "#505C7C",
+     "#6877A1",
+     "#949EB7",
+     "#C4C8D4",
+     "#EBECEF"
+    ]
+   },
+   "navy": {
+    "role": "primary",
+    "displayName": "Album Navy",
+    "canonical": "#294DB8",
+    "tonalRamp": [
+     "#101523",
+     "#1B2541",
+     "#25366A",
+     "#2C49A0",
+     "#395FD1",
+     "#768ED5",
+     "#B6C1E2",
+     "#E7EAF3"
+    ]
+   },
+   "sheen": {
+    "role": "primary",
+    "displayName": "Foil Sheen",
+    "canonical": "#8CB0FF",
+    "tonalRamp": [
+     "#0B1428",
+     "#10234C",
+     "#11337E",
+     "#0B44C1",
+     "#0D58FC",
+     "#5B8AF0",
+     "#AABFEE",
+     "#E4EAF7"
+    ]
+   },
+   "on-band": {
+    "role": "neutral",
+    "displayName": "Band Ink",
+    "canonical": "#DCE6FF",
+    "tonalRamp": [
+     "#0B1328",
+     "#10214C",
+     "#11307E",
+     "#0B3FC1",
+     "#0D51FC",
+     "#5B86F0",
+     "#AABDEE",
+     "#E4E9F7"
+    ]
+   },
+   "danger": {
+    "role": "error",
+    "displayName": "Delete Red",
+    "canonical": "#E5675F",
+    "tonalRamp": [
+     "#24100F",
+     "#431B18",
+     "#6E2520",
+     "#A72C25",
+     "#DB392E",
+     "#DB7670",
+     "#E5B6B3",
+     "#F4E7E6"
+    ]
+   },
+   "danger-outline": {
+    "role": "error",
+    "displayName": "Delete Outline",
+    "canonical": "#B0504F",
+    "tonalRamp": [
+     "#1E1517",
+     "#382428",
+     "#5A353D",
+     "#854754",
+     "#AE5B6D",
+     "#C08C97",
+     "#D8C0C5",
+     "#F0EAEB"
+    ]
+   },
+   "scrim": {
+    "role": "neutral",
+    "displayName": "Scrim",
+    "canonical": "#050914",
+    "tonalRamp": [
+     "#111622",
+     "#1C2640",
+     "#273868",
+     "#304D9C",
+     "#3D63CC",
+     "#7991D2",
+     "#B7C2E1",
+     "#E8EBF3"
+    ]
+   }
+  },
+  "typographyMeta": {
+   "sticker-number": {
+    "displayName": "Sticker number",
+    "purpose": "Weights on stickers, foils, printed slots and the keypad preview. 15–76 px."
+   },
+   "headline": {
+    "displayName": "Headline",
+    "purpose": "One sentence saying what's next, top of Home and Finish."
+   },
+   "band-title": {
+    "displayName": "Band title",
+    "purpose": "Exercise or page name inside the navy album band."
+   },
+   "title": {
+    "displayName": "Title",
+    "purpose": "Top app bar titles."
+   },
+   "body": {
+    "displayName": "Body",
+    "purpose": "List rows and buttons."
+   },
+   "label": {
+    "displayName": "Label",
+    "purpose": "Hints, dates and supporting lines. Never under 12 px."
+   }
+  },
+  "shadows": [],
+  "motion": [
+   {
+    "name": "sticker-settle",
+    "value": "rotate(-3deg) to rotate(0deg), 180ms, cubic-bezier(0.2, 0, 0, 1)",
+    "purpose": "A newly logged sticker settling into its slot, with a light haptic; a PR foil uses a stronger haptic. Instant when the system removes animations."
+   },
+   {
+    "name": "standard",
+    "value": "cubic-bezier(0.2, 0, 0, 1), 300ms",
+    "purpose": "Material standard easing for sheets, fade-through and container transforms."
+   }
+  ],
+  "breakpoints": [
+   {
+    "name": "compact",
+    "value": "0–599dp (phone, edge to edge: 24 status-bar inset, 80 navigation bar + 16 gesture inset)"
+   }
+  ]
+ },
+ "components": [
+  {
+   "name": "Primary Button",
+   "kind": "button",
+   "refersTo": "button-primary",
+   "description": "The one main action per screen, in the bottom bar.",
+   "html": "<button class=\"ds-btn-primary\">Finish</button>",
+   "css": ".ds-btn-primary{height:56px;padding:0 28px;border:0;border-radius:28px;background:#294DB8;color:#F5F7FC;font:700 16px Archivo,Roboto,sans-serif;cursor:pointer;transition:background .2s} .ds-btn-primary:hover{background:#3358C8} .ds-btn-primary:focus-visible{outline:2px solid #8CB0FF;outline-offset:2px}"
+  },
+  {
+   "name": "Tonal Button",
+   "kind": "button",
+   "refersTo": "button-tonal",
+   "description": "Second action beside the primary, e.g. Add exercise.",
+   "html": "<button class=\"ds-btn-tonal\">Add exercise</button>",
+   "css": ".ds-btn-tonal{height:56px;padding:0 24px;border:0;border-radius:28px;background:#1E2A46;color:#F5F7FC;font:600 15px Archivo,Roboto,sans-serif;cursor:pointer} .ds-btn-tonal:hover{background:#26345A} .ds-btn-tonal:focus-visible{outline:2px solid #8CB0FF;outline-offset:2px}"
+  },
+  {
+   "name": "Outlined Button",
+   "kind": "button",
+   "refersTo": "button-outlined",
+   "description": "In-card options such as Drop set, Superset, Edit.",
+   "html": "<button class=\"ds-btn-outlined\">Drop set</button>",
+   "css": ".ds-btn-outlined{height:48px;padding:0 18px;border:1px solid #5B6A8F;border-radius:24px;background:transparent;color:#8CB0FF;font:600 14px Archivo,Roboto,sans-serif;cursor:pointer} .ds-btn-outlined:hover{background:#141E36} .ds-btn-outlined:focus-visible{outline:2px solid #8CB0FF;outline-offset:2px}"
+  },
+  {
+   "name": "Sticker",
+   "kind": "custom",
+   "refersTo": "sticker",
+   "description": "A logged set.",
+   "html": "<span class=\"ds-sticker\"><b>30</b><small>set 2</small></span>",
+   "css": ".ds-sticker{width:58px;height:64px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#F5F7FC;color:#0A1224;border-radius:6px;font-family:Archivo,Roboto,sans-serif} .ds-sticker b{font-size:24px;font-weight:800;font-stretch:82%;font-variant-numeric:tabular-nums;line-height:1} .ds-sticker small{font-size:11px;color:#5B6A8F}"
+  },
+  {
+   "name": "PR Foil",
+   "kind": "custom",
+   "refersTo": "sticker-foil",
+   "description": "A set that beat the personal record.",
+   "html": "<span class=\"ds-foil\"><b>37.5</b><small>PR</small></span>",
+   "css": ".ds-foil{position:relative;overflow:hidden;width:58px;height:64px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#294DB8;color:#F5F7FC;border:3px solid #F5F7FC;border-radius:6px;font-family:Archivo,Roboto,sans-serif;transform:rotate(-3deg)} .ds-foil::before{content:'';position:absolute;width:30%;height:180%;left:38%;top:-40%;background:#8CB0FF;opacity:.35;transform:rotate(30deg)} .ds-foil>*{position:relative} .ds-foil b{font-size:22px;font-weight:800;font-stretch:82%;font-variant-numeric:tabular-nums;line-height:1} .ds-foil small{font-size:11px;font-weight:700;color:#DCE6FF}"
+  },
+  {
+   "name": "Printed Slot",
+   "kind": "custom",
+   "refersTo": "slot-printed",
+   "description": "Last time's weight printed in an empty slot. One tap logs it.",
+   "html": "<button class=\"ds-slot\"><b>35</b><small>set 4</small></button>",
+   "css": ".ds-slot{width:58px;height:64px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;border:1.5px solid #5B6A8F;border-radius:6px;color:#949FBD;font-family:Archivo,Roboto,sans-serif;cursor:pointer} .ds-slot b{font-size:24px;font-weight:700;font-stretch:82%;line-height:1} .ds-slot small{font-size:11px} .ds-slot:hover{border-color:#8CB0FF} .ds-slot:focus-visible{outline:2px solid #8CB0FF;outline-offset:2px}"
+  },
+  {
+   "name": "Album Band",
+   "kind": "card",
+   "refersTo": "album-band",
+   "description": "Navy header over the current exercise or the page subject.",
+   "html": "<div class=\"ds-band\"><span>One-arm dumbbell row</span><small>3 of 6</small></div>",
+   "css": ".ds-band{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:12px 16px;background:#294DB8;border-radius:16px 16px 0 0;font-family:Archivo,Roboto,sans-serif} .ds-band span{font-size:20px;font-weight:800;font-stretch:85%;color:#F5F7FC} .ds-band small{font-size:13px;font-weight:600;color:#DCE6FF}"
+  },
+  {
+   "name": "Navigation Bar",
+   "kind": "nav",
+   "refersTo": "nav-bar",
+   "description": "Material 3 bar with the four fixed tabs.",
+   "html": "<nav class=\"ds-nav\"><a class=\"on\" href=\"#\"><i></i>Home</a><a href=\"#\"><i></i>History</a><a href=\"#\"><i></i>Progress</a><a href=\"#\"><i></i>Templates</a></nav>",
+   "css": ".ds-nav{display:flex;height:80px;background:#141E36;font-family:Archivo,Roboto,sans-serif} .ds-nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;color:#949FBD;text-decoration:none} .ds-nav i{width:64px;height:32px;border-radius:16px} .ds-nav a.on{color:#F5F7FC;font-weight:700} .ds-nav a.on i{background:#294DB8} .ds-nav a:focus-visible{outline:2px solid #8CB0FF}"
+  },
+  {
+   "name": "Search Field",
+   "kind": "input",
+   "refersTo": "search-field",
+   "description": "Pill search for exercises.",
+   "html": "<input class=\"ds-search\" placeholder=\"Search exercises\">",
+   "css": ".ds-search{height:56px;width:100%;box-sizing:border-box;padding:0 20px;border:2px solid transparent;border-radius:28px;background:#141E36;color:#F5F7FC;font:400 16px Archivo,Roboto,sans-serif} .ds-search::placeholder{color:#949FBD} .ds-search:focus{outline:none;border-color:#8CB0FF}"
+  }
+ ],
+ "narrative": {
+  "northStar": "The Sticker Album",
+  "overview": "Every workout is a page in a football sticker album. Each logged set is a white paper sticker stuck into its slot; each personal record is a foil. The empty slot shows last time's number printed inside it, so repeating a weight is one tap. The album world lives only in the numbers; everything around them is plain Material 3 on the app's original navy. Ease of use outranks looks.",
+  "keyCharacteristics": [
+   "Navy page, white paper stickers, navy foils with one light-blue sheen band.",
+   "Condensed heavy Archivo numerals, tabular, as the loudest thing on every screen.",
+   "One navy header band per page marks the current exercise or the page's subject.",
+   "56 px main buttons in a bottom bar; nothing tappable under 48 px.",
+   "Every action is a labelled button or a visible handle; no secret gestures."
+  ],
+  "rules": [
+   {
+    "name": "The Paper Is Earned Rule",
+    "body": "White paper appears only for a logged set, a logged cardio time, or an exercise's best in Progress. Letter and number badges use Chip Navy with Foil Sheen text. Nothing decorative is ever white.",
+    "section": "colors"
+   },
+   {
+    "name": "The Fresh Foil Rule",
+    "body": "Foil marks a PR from the latest workout (and the Recent PRs strip). Older bests are white paper, so today's wins stand out.",
+    "section": "colors"
+   },
+   {
+    "name": "The One Band Rule",
+    "body": "One navy header band per screen, over the thing being worked on now.",
+    "section": "colors"
+   },
+   {
+    "name": "The Numbers Shout Rule",
+    "body": "The weight is always the biggest, heaviest text in its area.",
+    "section": "typography"
+   },
+   {
+    "name": "The Tilt Means New Rule",
+    "body": "Only the newest sticker or a PR foil is tilted. Everything else sits straight.",
+    "section": "elevation"
+   }
+  ],
+  "dos": [
+   "Do put the screen's main action in the bottom bar at 56 px.",
+   "Do log the printed slot in one tap, and open a clean keypad from +.",
+   "Do show every action as a labelled button or visible handle (drop set, superset, edit, reorder, remove).",
+   "Do use foils only for real PRs, and tilt only the newest sticker.",
+   "Do keep data untouched in any redesign: same models, same formazilla.json, same signing key."
+  ],
+  "donts": [
+   "Don't prefill the keypad from +; the user has to erase before typing.",
+   "Don't hide actions behind long-press or swipe alone.",
+   "Don't put stickers on menus, tabs or sheets; the album lives only in sets and PRs.",
+   "Don't add drop shadows, gradients or glow; depth is tonal plus the sticker tilt.",
+   "Don't add tabs or change their order."
+  ]
+ }
+}
