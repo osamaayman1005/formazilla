@@ -12,7 +12,12 @@ class KeypadResult {
   const KeypadResult({this.weight, this.dropSet = false, this.deleted = false});
 }
 
-/// Bottom sheet number pad. No system keyboard, big keys, quick ± buttons.
+/// Bottom sheet number pad. No system keyboard, big keys.
+///
+/// With no [initial] it opens clean: nothing to erase, just type. [hint]
+/// (e.g. "Last time 35") is shown as information only, never prefilled.
+/// With an [initial] value (editing a logged set) the number starts selected,
+/// so the first key replaces it; the ± nudges are shown.
 Future<KeypadResult?> showWeightKeypad(
   BuildContext context, {
   required String title,
@@ -23,6 +28,7 @@ Future<KeypadResult?> showWeightKeypad(
   List<double> bumps = const [-5, -2.5, 2.5, 5],
   String? unit,
   String deleteLabel = 'Delete set',
+  String? hint,
 }) {
   return showModalBottomSheet<KeypadResult>(
     context: context,
@@ -36,6 +42,7 @@ Future<KeypadResult?> showWeightKeypad(
       bumps: bumps,
       unit: unit,
       deleteLabel: deleteLabel,
+      hint: hint,
     ),
   );
 }
@@ -63,6 +70,7 @@ class _Keypad extends StatefulWidget {
     required this.bumps,
     this.unit,
     required this.deleteLabel,
+    this.hint,
   });
 
   final String title;
@@ -73,6 +81,7 @@ class _Keypad extends StatefulWidget {
   final List<double> bumps;
   final String? unit;
   final String deleteLabel;
+  final String? hint;
 
   @override
   State<_Keypad> createState() => _KeypadState();
@@ -82,10 +91,21 @@ class _KeypadState extends State<_Keypad> {
   late String _text = widget.initial == null ? '' : formatWeight(widget.initial!);
   late bool _dropSet = widget.dropSet;
 
+  /// True while an existing value is shown "selected": the next key replaces it.
+  late bool _replace = widget.initial != null;
+
   double? get _value => double.tryParse(_text);
 
   void _press(String key) {
     setState(() {
+      if (_replace) {
+        _replace = false;
+        if (key == '⌫') {
+          _text = '';
+          return;
+        }
+        _text = '';
+      }
       if (key == '⌫') {
         if (_text.isNotEmpty) _text = _text.substring(0, _text.length - 1);
       } else if (key == '.') {
@@ -98,11 +118,61 @@ class _KeypadState extends State<_Keypad> {
 
   void _bump(double delta) {
     final v = ((_value ?? 0) + delta).clamp(0, 99999).toDouble();
-    setState(() => _text = formatWeight(v));
+    setState(() {
+      _replace = false;
+      _text = formatWeight(v);
+    });
+  }
+
+  Widget _preview() {
+    final caption = widget.unit ?? (widget.initial != null ? null : 'type the weight');
+    if (_text.isEmpty) {
+      return DashedBorder(
+        radius: 8,
+        color: AppColors.accentLight,
+        child: SizedBox(
+          width: 132,
+          height: 132,
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(width: 3, height: 48, decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 10),
+            Text(caption ?? 'type the weight',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.muted)),
+          ]),
+        ),
+      );
+    }
+    return Container(
+      width: 132,
+      height: 132,
+      decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(8)),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: _replace ? AppColors.paperSelection : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(_text, style: AppText.sticker.copyWith(fontSize: 60)),
+          ),
+        ),
+        if (widget.unit != null) ...[
+          const SizedBox(height: 8),
+          Text(widget.unit!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.paperCaption)),
+        ],
+      ]),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final editing = widget.initial != null;
+    final value = _value;
+    final hint = editing
+        ? (_replace ? 'Type to replace it, or nudge it' : null)
+        : widget.hint;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(AppSpace.screen, 0, AppSpace.screen, AppSpace.lg),
@@ -110,28 +180,38 @@ class _KeypadState extends State<_Keypad> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(widget.title, style: AppText.caption, textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            Text(
-              _text.isEmpty ? '0' : _text,
-              textAlign: TextAlign.center,
-              style: AppText.display.copyWith(
-                fontSize: 48,
-                color: _text.isEmpty ? AppColors.muted : AppColors.text,
+            Text(widget.title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text),
+                textAlign: TextAlign.center),
+            const SizedBox(height: AppSpace.lg),
+            Semantics(
+              liveRegion: true,
+              label: _text.isEmpty ? 'Weight, empty' : 'Weight $_text',
+              child: Center(child: _preview()),
+            ),
+            SizedBox(
+              height: 32,
+              child: Center(
+                child: hint == null ? null : Text(hint, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
               ),
             ),
-            if (widget.unit != null) Text(widget.unit!, style: AppText.caption, textAlign: TextAlign.center),
-            const SizedBox(height: AppSpace.md),
-            Row(children: [
-              for (final d in widget.bumps)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: _Key(label: d > 0 ? '+${formatWeight(d)}' : formatWeight(d), small: true, onTap: () => _bump(d)),
+            if (editing) ...[
+              Row(children: [
+                for (final d in widget.bumps)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: OutlinedButton(
+                        onPressed: () => _bump(d),
+                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                        child: Text(d > 0 ? '+${formatWeight(d)}' : '−${formatWeight(-d)}',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
                   ),
-                ),
-            ]),
-            const SizedBox(height: AppSpace.sm),
+              ]),
+              const SizedBox(height: AppSpace.md),
+            ],
             for (final row in const [
               ['1', '2', '3'],
               ['4', '5', '6'],
@@ -139,43 +219,71 @@ class _KeypadState extends State<_Keypad> {
               ['.', '0', '⌫'],
             ])
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Row(children: [
                   for (final k in row)
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: _Key(label: k, onTap: () => _press(k)),
                       ),
                     ),
                 ]),
               ),
-            const SizedBox(height: AppSpace.xs),
+            const SizedBox(height: AppSpace.sm),
             Row(children: [
-              if (widget.showDropSet)
-                Expanded(
-                  child: FilterChip(
-                    label: const Text('Drop set'),
-                    selected: _dropSet,
-                    onSelected: (v) => setState(() => _dropSet = v),
-                  ),
-                )
-              else
-                const Spacer(),
-              if (widget.allowDelete)
-                TextButton.icon(
-                  onPressed: () => Navigator.pop(context, const KeypadResult(deleted: true)),
-                  icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                  label: Text(widget.deleteLabel, style: const TextStyle(color: AppColors.danger)),
+              if (widget.showDropSet) ...[
+                SizedBox(
+                  height: 56,
+                  child: _dropSet
+                      ? FilledButton.icon(
+                          onPressed: () => setState(() => _dropSet = false),
+                          icon: const Icon(Icons.arrow_downward, size: 18),
+                          label: const Text('Drop set'),
+                          style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.chip, foregroundColor: AppColors.accentLight),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () => setState(() => _dropSet = true),
+                          icon: const Icon(Icons.arrow_downward, size: 18),
+                          label: const Text('Drop set'),
+                        ),
                 ),
+                const SizedBox(width: AppSpace.sm),
+              ],
+              if (widget.allowDelete) ...[
+                SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context, const KeypadResult(deleted: true)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.dangerOutline),
+                    ),
+                    child: Text(widget.deleteLabel == 'Delete set' ? 'Delete' : widget.deleteLabel),
+                  ),
+                ),
+                const SizedBox(width: AppSpace.sm),
+              ],
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: value == null
+                        ? null
+                        : () => Navigator.pop(context, KeypadResult(weight: value, dropSet: _dropSet)),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: AppColors.onAccent,
+                      disabledBackgroundColor: AppColors.chip,
+                      disabledForegroundColor: AppColors.muted,
+                    ),
+                    child: Text(value == null ? 'Type a weight to save' : 'Save ${formatWeight(value)}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ),
             ]),
-            const SizedBox(height: AppSpace.md),
-            PrimaryButton(
-              'Save',
-              onPressed: _value == null
-                  ? null
-                  : () => Navigator.pop(context, KeypadResult(weight: _value, dropSet: _dropSet)),
-            ),
           ],
         ),
       ),
@@ -184,29 +292,27 @@ class _KeypadState extends State<_Keypad> {
 }
 
 class _Key extends StatelessWidget {
-  const _Key({required this.label, required this.onTap, this.small = false});
+  const _Key({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
-  final bool small;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: small ? AppColors.bg : AppColors.chip,
-      borderRadius: BorderRadius.circular(12),
+      color: AppColors.chip,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: SizedBox(
-          height: small ? 40 : 54,
+          height: 58,
           child: Center(
-            child: Text(label,
-                style: TextStyle(
-                  fontSize: small ? 15 : 22,
-                  fontWeight: FontWeight.w600,
-                  color: small ? AppColors.accentLight : AppColors.text,
-                )),
+            child: label == '⌫'
+                ? const Icon(Icons.backspace_outlined, size: 26, color: AppColors.text, semanticLabel: 'Delete last digit')
+                : Text(label,
+                    style: const TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.w600, color: AppColors.text, fontFeatures: [FontFeature.tabularFigures()])),
           ),
         ),
       ),

@@ -11,7 +11,6 @@ import '../../state/app_store.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
 import '../widgets/exercise_block.dart';
-import '../widgets/exercise_input.dart';
 import '../widgets/motion.dart';
 import '../widgets/split_sheet.dart' show askText;
 import '../widgets/store_scope.dart';
@@ -53,6 +52,7 @@ class _SessionScreenState extends State<SessionScreen> {
     final done = store.exercisesDone(session);
     final elapsed = DateTime.now().difference(session.startedAt);
     final groups = groupExercises(session);
+    final current = _currentIndex(session);
 
     return Scaffold(
       body: SafeArea(
@@ -71,10 +71,9 @@ class _SessionScreenState extends State<SessionScreen> {
             rotations: rotations,
             rotationId: session.rotationId,
             onRotation: (r) => store.switchRotation(session, r),
-            onFinish: () => _finish(context, store, session),
           ),
           Expanded(
-            // Hold a card, then drag it up or down. Supersets move as one card.
+            // Drag a card by its handle (or hold it) to move it. Supersets move as one card.
             child: ReorderableListView.builder(
               padding: const EdgeInsets.fromLTRB(AppSpace.screen, 0, AppSpace.screen, AppSpace.xl),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -92,46 +91,92 @@ class _SessionScreenState extends State<SessionScreen> {
               ),
               itemBuilder: (context, g) {
                 final group = groups[g];
+                final handle = ReorderableDragStartListener(
+                  index: g,
+                  child: const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Icon(Icons.drag_indicator, color: AppColors.muted, semanticLabel: 'Drag to reorder'),
+                  ),
+                );
                 return ReorderableDelayedDragStartListener(
                   key: ObjectKey(session.exercises[group.first]),
                   index: g,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: AppSpace.md),
                     child: group.length > 1
-                        ? SupersetCard(store: store, session: session, indexes: group)
+                        ? SupersetCard(store: store, session: session, indexes: group, dragHandle: handle)
                         : session.exercises[group.first].cardio
-                            ? CardioCard(store: store, session: session, index: group.first)
-                            : ExerciseCard(store: store, session: session, index: group.first),
+                            ? CardioCard(store: store, session: session, index: group.first, dragHandle: handle)
+                            : ExerciseCard(
+                                store: store,
+                                session: session,
+                                index: group.first,
+                                current: group.first == current,
+                                position: '${group.first + 1} of ${session.exercises.length}',
+                                dragHandle: handle,
+                              ),
                   ),
                 );
               },
-              footer: Column(children: [
-                Row(children: [
-                  Expanded(
-                    child: ExerciseInput(
-                      search: store.searchLibrary,
-                      onSubmit: (name) => store.addExercise(session, name),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpace.sm),
-                  CardioAddButton(onPressed: () async {
-                    final name = await showCardioPicker(context, store);
-                    if (name != null) store.addExercise(session, name, cardio: true);
-                  }),
-                ]),
-                const SizedBox(height: AppSpace.md),
-                const Text(
-                  'Tap dashed = same as last time · + = type a weight · Hold a card to move it · '
-                  'Long-press a set = drop set · ⋮ = superset',
-                  style: AppText.small,
-                  textAlign: TextAlign.center,
-                ),
-              ]),
+              footer: session.exercises.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 48),
+                      child: Text('Tap Add exercise to start logging.', style: AppText.caption, textAlign: TextAlign.center),
+                    )
+                  : null,
             ),
           ),
         ]),
       ),
+      bottomNavigationBar: Material(
+        color: AppColors.card,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.md, AppSpace.screen, AppSpace.md),
+            child: Row(children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final pick = await showAddExerciseSheet(context, store, title: 'Add to ${store.sessionTitle(session)}');
+                      if (pick != null) store.addExercise(session, pick.name, cardio: pick.cardio);
+                    },
+                    icon: const Icon(Icons.add, color: AppColors.accentLight),
+                    label: const Text('Add exercise'),
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.chip, foregroundColor: AppColors.text),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpace.sm),
+              SizedBox(
+                width: 124,
+                height: 56,
+                child: FilledButton(
+                  onPressed: () => _finish(context, store, session),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: AppColors.onAccent),
+                  child: const Text('Finish'),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
     );
+  }
+
+  /// The exercise you're on: the one you logged most recently, else the first
+  /// one with nothing logged yet.
+  int _currentIndex(Session s) {
+    if (s.current != null) {
+      final key = exerciseKey(s.current!);
+      final i = s.exercises.indexWhere((e) => exerciseKey(e.name) == key);
+      if (i >= 0) return i;
+    }
+    final i = s.exercises.indexWhere((e) => !e.cardio && e.sets.isEmpty);
+    return i < 0 ? 0 : i;
   }
 
   Future<void> _finish(BuildContext context, AppStore store, Session session) async {
@@ -180,7 +225,6 @@ class _Header extends StatelessWidget {
     required this.rotations,
     required this.rotationId,
     required this.onRotation,
-    required this.onFinish,
     this.onTitleTap,
   });
 
@@ -189,7 +233,6 @@ class _Header extends StatelessWidget {
   final List<Rotation> rotations;
   final String rotationId;
   final ValueChanged<Rotation> onRotation;
-  final VoidCallback onFinish;
   final VoidCallback? onTitleTap;
 
   @override
@@ -211,31 +254,20 @@ class _Header extends StatelessWidget {
                 Flexible(child: Text(title, style: AppText.title.copyWith(fontSize: 22), overflow: TextOverflow.ellipsis)),
                 if (onTitleTap != null) ...[
                   const SizedBox(width: 6),
-                  const Icon(Icons.edit_outlined, size: 16, color: AppColors.muted),
+                  const Icon(Icons.edit_outlined, size: 18, color: AppColors.accentLight, semanticLabel: 'Rename'),
                 ],
               ]),
             ),
             Text(subtitle, style: AppText.caption),
           ]),
         ),
-        if (rotations.length > 1) ...[
+        if (rotations.length > 1)
           Segmented(
             compact: true,
             options: [for (final r in rotations) r.name],
             selected: index < 0 ? 0 : index,
             onChanged: (i) => onRotation(rotations[i]),
           ),
-          const SizedBox(width: AppSpace.sm),
-        ],
-        FilledButton(
-          onPressed: onFinish,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.accent,
-            foregroundColor: AppColors.onAccent,
-            shape: const StadiumBorder(),
-          ),
-          child: const Text('Finish'),
-        ),
       ]),
     );
   }
@@ -293,4 +325,85 @@ class _SummaryDialog extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Add an exercise or cardio. Type to search your history and the library;
+/// any name you type can be added as new. Cardio is logged in minutes.
+Future<({String name, bool cardio})?> showAddExerciseSheet(BuildContext context, AppStore store, {required String title}) {
+  final controller = TextEditingController();
+  return showModalBottomSheet<({String name, bool cardio})>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setState) {
+        final query = controller.text.trim();
+        final results = store.searchLibrary(query);
+        final exact = results.any((r) => exerciseKey(r) == exerciseKey(query));
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
+          child: SafeArea(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(c).height * 0.85),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(AppSpace.xl, 0, AppSpace.xl, AppSpace.lg),
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: AppText.title),
+                  const SizedBox(height: AppSpace.md),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: AppText.body.copyWith(fontSize: 17),
+                    decoration: const InputDecoration(
+                      hintText: 'Search exercises',
+                      prefixIcon: Icon(Icons.search, color: AppColors.muted),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (v) {
+                      final name = v.trim();
+                      if (name.isNotEmpty) Navigator.pop(c, (name: name, cardio: store.isCardio(name)));
+                    },
+                  ),
+                  const SizedBox(height: AppSpace.sm),
+                  for (final name in results)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(name, style: AppText.body.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
+                      trailing: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(color: AppColors.chip, shape: BoxShape.circle),
+                        child: const Icon(Icons.add, color: AppColors.accentLight),
+                      ),
+                      onTap: () => Navigator.pop(c, (name: name, cardio: store.isCardio(name))),
+                    ),
+                  if (query.isNotEmpty && !exact)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.edit_outlined, color: AppColors.accentLight),
+                      title: Text('Add “$query” as a new exercise',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.accentLight)),
+                      onTap: () => Navigator.pop(c, (name: query, cardio: false)),
+                    ),
+                  const SizedBox(height: AppSpace.md),
+                  const Text('Cardio', style: AppText.section),
+                  const SizedBox(height: 2),
+                  const Text('Logged in minutes, no sets.', style: AppText.caption),
+                  const SizedBox(height: AppSpace.sm),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final name in store.cardioNames)
+                      ActionChip(
+                        avatar: const Icon(Icons.timer_outlined, size: 18, color: AppColors.accentLight),
+                        label: Text(name),
+                        onPressed: () => Navigator.pop(c, (name: name, cardio: true)),
+                      ),
+                  ]),
+                ]),
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }

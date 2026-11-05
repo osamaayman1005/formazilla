@@ -11,7 +11,6 @@ import '../../data/models.dart';
 import '../../domain/workout_logic.dart' show exerciseGroups, isNewRecord, supersetNext, supersetRound;
 import '../../state/app_store.dart';
 import 'common.dart';
-import 'kaiju.dart';
 import 'keypad_sheet.dart';
 import 'motion.dart';
 import 'set_chip.dart';
@@ -19,30 +18,76 @@ import 'set_chip.dart';
 /// The cards of a workout: supersets share one card. See [exerciseGroups].
 List<List<int>> groupExercises(Session s) => exerciseGroups([for (final e in s.exercises) e.supersetId]);
 
-/// One exercise in its own card.
+/// One exercise in its own card: the album row. The exercise you're on gets
+/// the navy band; the others a quieter one.
 class ExerciseCard extends StatelessWidget {
-  const ExerciseCard({super.key, required this.store, required this.session, required this.index});
+  const ExerciseCard({
+    super.key,
+    required this.store,
+    required this.session,
+    required this.index,
+    this.current = false,
+    this.position,
+    this.dragHandle,
+  });
 
   final AppStore store;
   final Session session;
   final int index;
 
+  /// The exercise being worked on now.
+  final bool current;
+
+  /// "3 of 6" on the band.
+  final String? position;
+
+  /// Visible handle to drag the card (drag-to-reorder).
+  final Widget? dragHandle;
+
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
-      child: ExerciseBody(store: store, session: session, index: index, showMenu: true),
+    final ex = session.exercises[index];
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          color: current ? AppColors.accent : AppColors.chip,
+          padding: EdgeInsets.fromLTRB(16, 4, dragHandle == null ? 16 : 0, 4),
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Row(children: [
+            Expanded(
+              child: Text(ex.name,
+                  style: AppText.band.copyWith(color: current ? AppColors.onAccent : AppColors.text)),
+            ),
+            if (position != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(position!,
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: current ? AppColors.onBand : AppColors.muted)),
+              ),
+            if (dragHandle != null) dragHandle!,
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: ExerciseBody(store: store, session: session, index: index, showHeader: false, showActions: true),
+        ),
+      ]),
     );
   }
 }
 
 /// Two or more exercises done alternately: A → B → A → B.
 class SupersetCard extends StatelessWidget {
-  const SupersetCard({super.key, required this.store, required this.session, required this.indexes});
+  const SupersetCard({super.key, required this.store, required this.session, required this.indexes, this.dragHandle});
 
   final AppStore store;
   final Session session;
   final List<int> indexes;
+  final Widget? dragHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -50,20 +95,17 @@ class SupersetCard extends StatelessWidget {
     final next = supersetNext(counts);
     final id = session.exercises[indexes.first].supersetId!;
     return AppCard(
-      borderColor: AppColors.accentLight,
-      padding: const EdgeInsets.fromLTRB(16, 8, 4, 14),
+      padding: const EdgeInsets.fromLTRB(16, 6, 4, 14),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Pill('Superset', fill: AppColors.accent, color: AppColors.onAccent),
+          const Pill('Superset', fill: AppColors.chip, color: AppColors.accentLight),
           const SizedBox(width: AppSpace.sm),
-          Expanded(child: Text('Round ${supersetRound(counts)}', style: AppText.caption)),
-          TextButton(
-            onPressed: () => _unlink(context, id),
-            child: const Text('Unlink', style: TextStyle(color: AppColors.accentLight)),
-          ),
+          Expanded(child: Text('Round ${supersetRound(counts)} · do A, then B', style: AppText.caption)),
+          TextButton(onPressed: () => _unlink(context, id), child: const Text('Unlink')),
+          if (dragHandle != null) dragHandle!,
         ]),
         for (var k = 0; k < indexes.length; k++) ...[
-          if (k > 0) const Divider(color: AppColors.line, height: 20, endIndent: 12),
+          if (k > 0) const Padding(padding: EdgeInsets.only(right: 12), child: Divider(height: 24)),
           ExerciseBody(
             store: store,
             session: session,
@@ -73,11 +115,6 @@ class SupersetCard extends StatelessWidget {
             showMenu: true,
           ),
         ],
-        const SizedBox(height: AppSpace.xs),
-        const Padding(
-          padding: EdgeInsets.only(right: 12),
-          child: Text('Log A, then B. "Next up" moves on its own.', style: AppText.small),
-        ),
       ]),
     );
   }
@@ -103,7 +140,8 @@ class SupersetCard extends StatelessWidget {
   }
 }
 
-/// Name, PR badge, last-time line and set chips for one exercise.
+/// Name (optional), last-time line, the sticker slots and, on a single
+/// exercise, the visible actions.
 class ExerciseBody extends StatelessWidget {
   const ExerciseBody({
     super.key,
@@ -113,6 +151,8 @@ class ExerciseBody extends StatelessWidget {
     this.letter,
     this.nextUp = false,
     this.showMenu = false,
+    this.showHeader = true,
+    this.showActions = false,
   });
 
   final AppStore store;
@@ -121,6 +161,8 @@ class ExerciseBody extends StatelessWidget {
   final String? letter;
   final bool nextUp;
   final bool showMenu;
+  final bool showHeader;
+  final bool showActions;
 
   SessionExercise get _ex => session.exercises[index];
 
@@ -131,53 +173,49 @@ class ExerciseBody extends StatelessWidget {
     final last = store.lastTimeIn(session, ex.name);
     final top = ex.sets.isEmpty ? null : ex.sets.map((s) => s.weight).reduce((a, b) => a > b ? a : b);
     final hitRecord = top != null && isNewRecord(top, best);
+    final nextGhost = ex.sets.length < last.length ? last[ex.sets.length] : null;
+
+    final lastLine = last.isNotEmpty
+        ? 'Last time ${formatWeights(last)}${best != null ? ' · best ${formatWeight(best)}' : ''}'
+        : ex.sets.isEmpty
+            ? (session.oneTime ? 'Tap + to log' : 'First time. Tap + to log')
+            : 'First time';
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        if (letter != null) ...[
-          _LetterBadge(letter!, active: nextUp),
-          const SizedBox(width: AppSpace.sm),
-        ],
-        Expanded(child: Text(ex.name, style: AppText.cardTitle)),
-        if (letter != null)
-          _SlideSwap(
-            child: nextUp
-                ? const Padding(
-                    key: ValueKey('next'),
-                    padding: EdgeInsets.only(right: 6),
-                    child: Pill('Next up', color: AppColors.accentLight, outline: AppColors.accentLight, fontSize: 11),
-                  )
-                : const SizedBox.shrink(key: ValueKey('none')),
-          ),
-        _SlideSwap(
-          child: hitRecord
-              ? Pill('New PR ${formatWeight(top)}',
-                  key: ValueKey('pr-$top'),
-                  fill: AppColors.accent,
-                  color: AppColors.onAccent,
-                  leading: const ClawMark(size: 12))
-              : best != null
-                  ? Text('PR ${formatWeight(best)}',
-                      key: const ValueKey('pr-old'), style: AppText.small.copyWith(fontWeight: FontWeight.w500))
-                  : const SizedBox.shrink(key: ValueKey('pr-none')),
-        ),
-        if (showMenu) _menu(context) else const SizedBox(width: 12, height: 40),
-      ]),
+      if (showHeader)
+        Row(children: [
+          if (letter != null) ...[
+            _LetterBadge(letter!, active: nextUp),
+            const SizedBox(width: AppSpace.sm),
+          ],
+          Expanded(child: Text(ex.name, style: AppText.cardTitle)),
+          if (letter != null)
+            _SlideSwap(
+              child: nextUp
+                  ? const Padding(
+                      key: ValueKey('next'),
+                      padding: EdgeInsets.only(right: 6),
+                      child: Pill('Next up', color: AppColors.accentLight, outline: AppColors.accentLight, fontSize: 11),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('none')),
+            ),
+          if (showMenu)
+            IconButton(
+              tooltip: 'Options for ${ex.name}',
+              icon: const Icon(Icons.more_horiz, color: AppColors.muted),
+              onPressed: () => showExerciseOptions(context, store, session, index),
+            )
+          else
+            const SizedBox(width: 12, height: 40),
+        ]),
       Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: Text(
-          last.isNotEmpty
-              ? 'Last   ${formatWeights(last)}'
-              : ex.sets.isEmpty
-                  ? (session.oneTime ? 'Tap + to log' : 'First time — tap + to log')
-                  : 'First time',
-          style: AppText.caption,
-        ),
+        padding: EdgeInsets.only(right: showHeader ? 12 : 0),
+        child: Text(lastLine, style: AppText.caption.copyWith(fontSize: 14, fontFeatures: const [FontFeature.tabularFigures()])),
       ),
-      const SizedBox(height: AppSpace.sm),
+      const SizedBox(height: AppSpace.md),
       Padding(
-        padding: const EdgeInsets.only(right: 12),
-        child: Wrap(spacing: 8, runSpacing: 8, children: [
+        padding: EdgeInsets.only(right: showHeader ? 12 : 0),
+        child: Wrap(spacing: 6, runSpacing: 8, children: [
           for (var i = 0; i < ex.sets.length; i++)
             SetChip(
               key: ValueKey('slot-$i'),
@@ -197,10 +235,8 @@ class ExerciseBody extends StatelessWidget {
               key: ValueKey('slot-$j'),
               kind: ChipKind.ghost,
               weight: last[j],
-              onTap: () {
-                HapticFeedback.lightImpact();
-                store.addSet(session, index, last[j]);
-              },
+              index: j,
+              onTap: () => _logSame(context, last[j]),
             ),
           SetChip(
             key: const ValueKey('add'),
@@ -209,42 +245,86 @@ class ExerciseBody extends StatelessWidget {
           ),
         ]),
       ),
+      if (showActions) ...[
+        if (nextGhost != null) ...[
+          const SizedBox(height: AppSpace.sm),
+          Text('Tap ${formatWeight(nextGhost)} to repeat it, or + for a new weight', style: AppText.caption),
+        ],
+        if (hitRecord) ...[
+          const SizedBox(height: AppSpace.sm),
+          Pill(
+            best == null ? 'New PR ${formatWeight(top!)}' : 'New PR · ${formatWeight(top!)} beats ${formatWeight(best)}',
+            fill: AppColors.chip,
+            color: AppColors.accentLight,
+            fontSize: 14,
+            leading: const Icon(Icons.emoji_events_outlined, size: 16, color: AppColors.accentLight),
+          ),
+        ],
+        const SizedBox(height: AppSpace.md),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => _addWithKeypad(context, dropSet: true),
+              icon: const Icon(Icons.arrow_downward, size: 18),
+              label: const Text('Drop set', maxLines: 1),
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+            ),
+          ),
+          const SizedBox(width: AppSpace.sm),
+          if (ex.supersetId == null) ...[
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => showLinkSupersetSheet(context, store, session, index),
+                icon: const Icon(Icons.link, size: 18),
+                label: const Text('Superset', maxLines: 1),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+              ),
+            ),
+            const SizedBox(width: AppSpace.sm),
+          ],
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => showExerciseOptions(context, store, session, index),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Edit', maxLines: 1),
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+            ),
+          ),
+        ]),
+      ],
     ]);
   }
 
-  Widget _menu(BuildContext context) {
-    final inSuperset = _ex.supersetId != null;
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: AppColors.muted, size: 20),
-      color: AppColors.chip,
-      onSelected: (v) {
-        switch (v) {
-          case 'rename':
-            showRenameExercise(context, store, session, index);
-          case 'superset':
-            showLinkSupersetSheet(context, store, session, index);
-          case 'remove':
-            final removed = _ex;
-            store.removeExercise(session, index);
-            showActionSnackBar(context, '${removed.name} removed',
-                action: 'Undo', onAction: () => store.insertExercise(session, index, removed));
-        }
-      },
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: 'rename', child: Text('Rename')),
-        if (!inSuperset) const PopupMenuItem(value: 'superset', child: Text('Superset with…')),
-        const PopupMenuItem(value: 'remove', child: Text('Remove')),
-      ],
-    );
+  /// The outlined slot: logs last time's weight in one tap, with Undo.
+  void _logSame(BuildContext context, double weight) {
+    HapticFeedback.lightImpact();
+    final setIndex = _ex.sets.length;
+    store.addSet(session, index, weight);
+    showActionSnackBar(context, 'Set ${setIndex + 1} logged · ${formatWeight(weight)}',
+        action: 'Undo', onAction: () => store.removeSet(session, index, setIndex));
   }
 
-  /// "+" always opens an empty keypad; the dashed ghost chips are the
-  /// one-tap "same as last time" option.
-  Future<void> _addWithKeypad(BuildContext context) async {
-    final r = await showWeightKeypad(context, title: '${_ex.name} · set ${_ex.sets.length + 1}');
+  /// "+" (and Drop set) always open a clean keypad: nothing prefilled, so a
+  /// new number is typed without erasing. Last time is shown as a hint only.
+  Future<void> _addWithKeypad(BuildContext context, {bool dropSet = false}) async {
+    final ex = _ex;
+    final n = ex.sets.length;
+    final last = store.lastTimeIn(session, ex.name);
+    final best = store.recordBeforeIn(session, ex.name);
+    final hint = [
+      if (n < last.length) 'Last time ${formatWeight(last[n])}',
+      if (best != null) 'best ${formatWeight(best)}',
+    ].join(' · ');
+    final r = await showWeightKeypad(
+      context,
+      title: '${ex.name} · ${dropSet ? 'drop set' : 'set ${n + 1}'}',
+      dropSet: dropSet,
+      hint: hint.isEmpty ? null : hint,
+    );
     if (r?.weight != null) store.addSet(session, index, r!.weight!, dropSet: r.dropSet);
   }
 
+  /// A logged sticker: the keypad opens with its weight selected.
   Future<void> _edit(BuildContext context, int setIndex) async {
     final set = _ex.sets[setIndex];
     final r = await showWeightKeypad(
@@ -261,6 +341,73 @@ class ExerciseBody extends StatelessWidget {
       store.updateSet(session, index, setIndex, r.weight!, r.dropSet);
     }
   }
+}
+
+/// Exercise options: rename, move, superset, remove. Every option is a
+/// labelled row; nothing hides behind a gesture.
+Future<void> showExerciseOptions(BuildContext context, AppStore store, Session session, int index) {
+  final ex = session.exercises[index];
+  final groups = groupExercises(session);
+  final g = groups.indexWhere((group) => group.contains(index));
+  final template = session.oneTime ? null : store.rotationLabel(session.dayId, session.rotationId);
+
+  Widget option(BuildContext c, IconData icon, String title, String subtitle, VoidCallback? onTap,
+      {bool danger = false}) {
+    final color = danger ? AppColors.danger : AppColors.accentLight;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      minVerticalPadding: 10,
+      enabled: onTap != null,
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(color: AppColors.chip, borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon, color: onTap == null ? AppColors.muted : color, size: 22),
+      ),
+      title: Text(title,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: danger ? AppColors.danger : AppColors.text)),
+      subtitle: Text(subtitle, style: AppText.caption),
+      onTap: onTap == null
+          ? null
+          : () {
+              Navigator.pop(c);
+              onTap?.call();
+            },
+    );
+  }
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (c) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpace.xl, 0, AppSpace.xl, AppSpace.lg),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(ex.name, style: AppText.title),
+          if (template != null) ...[
+            const SizedBox(height: 4),
+            Text('Changes here also update the $template template.', style: AppText.caption),
+          ],
+          const SizedBox(height: AppSpace.sm),
+          option(c, Icons.edit_outlined, 'Rename', 'Everywhere: templates, past workouts and PRs',
+              () => showRenameExercise(context, store, session, index)),
+          option(c, Icons.arrow_upward, 'Move up', 'Or drag the handle on the card',
+              g > 0 ? () => store.moveExerciseGroup(session, g, g - 1) : null),
+          option(c, Icons.arrow_downward, 'Move down', 'Up next order changes too',
+              g >= 0 && g < groups.length - 1 ? () => store.moveExerciseGroup(session, g, g + 1) : null),
+          if (ex.supersetId == null && !ex.cardio)
+            option(c, Icons.link, 'Superset with…', 'Alternate it with another exercise',
+                () => showLinkSupersetSheet(context, store, session, index)),
+          option(c, Icons.delete_outline, 'Remove from workout', 'Its logged sets go too. Undo is offered.', () {
+            final removed = session.exercises[index];
+            store.removeExercise(session, index);
+            showActionSnackBar(context, '${removed.name} removed',
+                action: 'Undo', onAction: () => store.insertExercise(session, index, removed));
+          }, danger: true),
+        ]),
+      ),
+    ),
+  );
 }
 
 /// Swaps its child with a short fade + slide from the right.
@@ -337,73 +484,74 @@ Future<void> showRenameExercise(BuildContext context, AppStore store, Session se
   if (name != null) store.renameExercise(session, index, name);
 }
 
-/// Cardio: one time button. Tap it to type minutes (or change them).
+/// Cardio: minutes only, no sets or PRs. One wide sticker shows the time;
+/// tap it to type or change the minutes.
 class CardioCard extends StatelessWidget {
-  const CardioCard({super.key, required this.store, required this.session, required this.index});
+  const CardioCard({super.key, required this.store, required this.session, required this.index, this.dragHandle});
 
   final AppStore store;
   final Session session;
   final int index;
+  final Widget? dragHandle;
 
   @override
   Widget build(BuildContext context) {
     final ex = session.exercises[index];
     final minutes = ex.minutes;
     return AppCard(
-      borderColor: AppColors.accentLight,
-      padding: const EdgeInsets.fromLTRB(16, 8, 4, 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.monitor_heart_outlined, color: AppColors.accentLight, size: 22),
-          const SizedBox(width: AppSpace.sm),
-          Expanded(child: Text(ex.name, style: AppText.cardTitle)),
-          const Pill('Cardio', fill: AppColors.accent, color: AppColors.onAccent, fontSize: 11),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.muted, size: 20),
-            color: AppColors.chip,
-            onSelected: (v) {
-              switch (v) {
-                case 'rename':
-                  showRenameExercise(context, store, session, index);
-                case 'remove':
-                  final removed = ex;
-                  store.removeExercise(session, index);
-                  showActionSnackBar(context, '${removed.name} removed',
-                      action: 'Undo', onAction: () => store.insertExercise(session, index, removed));
-              }
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'rename', child: Text('Rename')),
-              PopupMenuItem(value: 'remove', child: Text('Remove')),
-            ],
-          ),
-        ]),
-        const SizedBox(height: AppSpace.sm),
-        Padding(
-          padding: const EdgeInsets.only(right: 12),
+      padding: EdgeInsets.fromLTRB(16, 14, dragHandle == null ? 16 : 0, 14),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              Text(ex.name, style: AppText.cardTitle.copyWith(fontSize: 17)),
+              const Pill('Cardio', fill: AppColors.chip, color: AppColors.accentLight, fontSize: 12),
+            ]),
+            const SizedBox(height: 6),
+            Text(minutes == null ? 'Tap to type the minutes.' : 'Minutes only, no sets or PRs. Tap to change.',
+                style: AppText.caption),
+            TextButton.icon(
+              onPressed: () => showExerciseOptions(context, store, session, index),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('Edit'),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
+            ),
+          ]),
+        ),
+        const SizedBox(width: AppSpace.md),
+        Semantics(
+          button: true,
+          label: minutes == null ? 'Log ${ex.name} minutes' : '${ex.name}, ${formatWeight(minutes)} minutes. Change',
+          excludeSemantics: true,
           child: Material(
-            color: minutes == null ? AppColors.chip : AppColors.accent,
-            borderRadius: BorderRadius.circular(AppRadius.chip),
+            color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.chip),
+              borderRadius: BorderRadius.circular(AppRadius.sticker),
               onTap: () => _editTime(context),
               child: SizedBox(
-                height: 56,
-                width: double.infinity,
-                child: Center(
-                  child: Text(
-                    minutes == null ? 'Add time' : '${formatWeight(minutes)} min',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: minutes == null ? AppColors.accentLight : AppColors.onAccent,
-                    ),
-                  ),
-                ),
+                width: 72,
+                height: 64,
+                child: minutes == null
+                    ? const DashedBorder(
+                        radius: AppRadius.sticker,
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.add, color: AppColors.accentLight, size: 22),
+                          Text('min', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                        ]),
+                      )
+                    : DecoratedBox(
+                        decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(AppRadius.sticker)),
+                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Text(formatWeight(minutes), style: AppText.sticker.copyWith(fontSize: 26)),
+                          const SizedBox(height: 4),
+                          const Text('min', style: TextStyle(fontSize: 11, color: AppColors.paperCaption)),
+                        ]),
+                      ),
               ),
             ),
           ),
         ),
+        if (dragHandle != null) dragHandle!,
       ]),
     );
   }

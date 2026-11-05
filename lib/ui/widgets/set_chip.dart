@@ -1,20 +1,25 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import 'common.dart';
-import 'kaiju.dart';
 import 'motion.dart';
 
-/// done   = logged set
-/// ghost  = last time's value, tap to log it
-/// record = logged set that beats the all-time PR
-/// add    = "+" to add a set
+/// done   = logged set: a white paper sticker
+/// ghost  = last time's value printed in an empty slot, tap to log it
+/// record = logged set that beats the all-time PR: a foil sticker
+/// add    = dashed slot, opens a clean keypad
 enum ChipKind { done, ghost, record, add }
 
-/// One set. Animates between kinds (a ghost "fills in" when logged), pops in
-/// when [popIn] is set, and glows + thumps when it becomes a record.
+/// Slot size in the album row.
+const stickerWidth = 58.0;
+const stickerHeight = 64.0;
+
+/// One set, drawn as an album sticker. A newly logged sticker lands tilted and
+/// settles flat ([popIn]); a record lands as foil with a stronger buzz.
 class SetChip extends StatefulWidget {
   const SetChip({
     super.key,
@@ -41,11 +46,10 @@ class SetChip extends StatefulWidget {
   State<SetChip> createState() => _SetChipState();
 }
 
-class _SetChipState extends State<SetChip> with TickerProviderStateMixin {
-  late final AnimationController _pop =
-      AnimationController(vsync: this, duration: Motion.base, value: widget.popIn ? 0 : 1);
-  late final AnimationController _glow = AnimationController(vsync: this, duration: Motion.glow);
-  late final CurvedAnimation _popCurve = CurvedAnimation(parent: _pop, curve: Motion.pop);
+class _SetChipState extends State<SetChip> with SingleTickerProviderStateMixin {
+  late final AnimationController _land =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 180), value: widget.popIn ? 0 : 1);
+  late final CurvedAnimation _curve = CurvedAnimation(parent: _land, curve: Curves.easeOutCubic);
 
   @override
   void initState() {
@@ -54,11 +58,11 @@ class _SetChipState extends State<SetChip> with TickerProviderStateMixin {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (Motion.reduced(context)) {
-          _pop.value = 1;
+          _land.value = 1;
         } else {
-          _pop.forward();
+          _land.forward();
         }
-        if (widget.kind == ChipKind.record) _celebrate();
+        if (widget.kind == ChipKind.record) HapticFeedback.heavyImpact();
       });
     }
   }
@@ -66,124 +70,186 @@ class _SetChipState extends State<SetChip> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(SetChip old) {
     super.didUpdateWidget(old);
-    if (old.kind != ChipKind.record && widget.kind == ChipKind.record) _celebrate();
-  }
-
-  void _celebrate() {
-    HapticFeedback.heavyImpact();
-    if (!Motion.reduced(context)) _glow.forward(from: 0);
+    if (old.kind != ChipKind.record && widget.kind == ChipKind.record) HapticFeedback.heavyImpact();
   }
 
   @override
   void dispose() {
-    _popCurve.dispose();
-    _pop.dispose();
-    _glow.dispose();
+    _curve.dispose();
+    _land.dispose();
     super.dispose();
   }
 
-  String get _label => widget.kind == ChipKind.add ? '+' : formatWeight(widget.weight ?? 0);
+  String get _label => formatWeight(widget.weight ?? 0);
 
   String get _semantics {
     final n = (widget.index ?? 0) + 1;
     final ds = widget.dropSet ? ', drop set' : '';
     return switch (widget.kind) {
-      ChipKind.add => 'Add set',
-      ChipKind.ghost => 'Last time $_label. Tap to log',
-      ChipKind.record => 'Set $n, $_label, new personal record$ds',
-      ChipKind.done => 'Set $n, $_label$ds',
+      ChipKind.add => 'Log a new weight',
+      ChipKind.ghost => 'Log set $n at $_label, same as last time',
+      ChipKind.record => 'Set $n, $_label, new personal record$ds. Edit',
+      ChipKind.done => 'Set $n, $_label$ds. Edit',
     };
+  }
+
+  Widget _caption(Color color) {
+    if (widget.dropSet) {
+      return Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.arrow_downward, size: 10, color: color),
+        const SizedBox(width: 2),
+        Text('drop', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+      ]);
+    }
+    final text = widget.kind == ChipKind.record ? 'PR' : 'set ${(widget.index ?? 0) + 1}';
+    return Text(text,
+        style: TextStyle(
+            fontSize: 11, fontWeight: widget.kind == ChipKind.record ? FontWeight.w700 : FontWeight.w500, color: color));
+  }
+
+  Widget _number(Color color) {
+    final long = _label.length > 3;
+    return Text(_label, style: AppText.sticker.copyWith(color: color, fontSize: long ? 20 : 24));
   }
 
   @override
   Widget build(BuildContext context) {
-    final (Color fill, Color textColor, Color outline) = switch (widget.kind) {
-      ChipKind.done => (AppColors.chip, AppColors.text, Colors.transparent),
-      ChipKind.record => (AppColors.accent, AppColors.onAccent, Colors.transparent),
-      ChipKind.ghost => (Colors.transparent, AppColors.muted, Colors.transparent),
-      ChipKind.add => (Colors.transparent, AppColors.accentLight, AppColors.line),
+    final radius = BorderRadius.circular(AppRadius.sticker);
+    final Widget face = switch (widget.kind) {
+      ChipKind.done => Container(
+          decoration: BoxDecoration(color: AppColors.paper, borderRadius: radius),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _number(AppColors.paperInk),
+            const SizedBox(height: 4),
+            _caption(AppColors.paperCaption),
+          ]),
+        ),
+      ChipKind.record => FoilFace(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _number(AppColors.onAccent),
+            const SizedBox(height: 4),
+            _caption(AppColors.onBand),
+          ]),
+        ),
+      ChipKind.ghost => Container(
+          decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: AppColors.line, width: 1.5)),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text(_label, style: AppText.sticker.copyWith(color: AppColors.muted, fontWeight: FontWeight.w700,
+                fontSize: _label.length > 3 ? 20 : 24)),
+            const SizedBox(height: 4),
+            _caption(AppColors.muted),
+          ]),
+        ),
+      ChipKind.add => const DashedBorder(
+          radius: AppRadius.sticker,
+          child: Center(child: Icon(Icons.add, size: 26, color: AppColors.accentLight)),
+        ),
     };
-    final fast = Motion.of(context, Motion.fast);
-    final radius = BorderRadius.circular(AppRadius.chip);
 
-    Widget body = AnimatedContainer(
-      duration: fast,
-      curve: Curves.easeOut,
-      constraints: const BoxConstraints(minWidth: 52, minHeight: 44),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: fill, borderRadius: radius, border: Border.all(color: outline, width: 1.5)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          AnimatedDefaultTextStyle(
-            duration: fast,
-            style: AppText.chip.copyWith(color: textColor),
-            child: Text(_label),
-          ),
-          if (widget.dropSet)
-            Padding(
-              padding: const EdgeInsets.only(left: 3, bottom: 2),
-              child: Text('ds', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textColor)),
-            ),
-        ],
-      ),
-    );
-
-    // Dashed outline fades out as a ghost becomes a logged set.
-    body = TweenAnimationBuilder<double>(
-      tween: Tween(end: widget.kind == ChipKind.ghost ? 1 : 0),
-      duration: fast,
-      builder: (_, v, child) => CustomPaint(
-        foregroundPainter: v > 0 ? DashedPainter(AppRadius.chip, AppColors.line.withValues(alpha: v)) : null,
-        child: child,
-      ),
-      child: body,
-    );
-
-    // PR glow: a ring that grows and fades.
-    body = AnimatedBuilder(
-      animation: _glow,
-      builder: (_, child) {
-        final t = _glow.value;
-        final on = _glow.isAnimating;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            boxShadow: on
-                ? [BoxShadow(color: AppColors.accentLight.withValues(alpha: 0.8 * (1 - t)), spreadRadius: 14 * t)]
-                : const [],
-          ),
-          // Claw scratches draw across the chip, then fade.
-          child: CustomPaint(
-            foregroundPainter: on
-                ? ClawPainter(
-                    color: AppColors.onAccent.withValues(alpha: 0.9 * (1 - t)),
-                    progress: (t * 2.5).clamp(0.0, 1.0),
-                  )
-                : null,
-            child: child,
-          ),
-        );
-      },
-      child: body,
-    );
-
+    final tilted = widget.kind == ChipKind.record;
     return Semantics(
       button: true,
       label: _semantics,
       excludeSemantics: true,
-      child: ScaleTransition(
-        scale: _popCurve,
-        child: FadeTransition(
-          opacity: _pop,
+      child: AnimatedBuilder(
+        animation: _curve,
+        builder: (_, child) {
+          final t = _curve.value;
+          // Lands at −3° and settles flat; a foil stays slightly tilted.
+          final angle = (tilted ? -3.0 : -3.0 * (1 - t)) * math.pi / 180;
+          return Opacity(
+            opacity: t.clamp(0.0, 1.0),
+            child: Transform.rotate(angle: angle, child: Transform.scale(scale: 0.9 + 0.1 * t, child: child)),
+          );
+        },
+        child: SizedBox(
+          width: stickerWidth,
+          height: stickerHeight,
           child: Material(
             color: Colors.transparent,
-            child: InkWell(borderRadius: radius, onTap: widget.onTap, onLongPress: widget.onLongPress, child: body),
+            borderRadius: radius,
+            child: InkWell(
+              borderRadius: radius,
+              onTap: widget.onTap,
+              onLongPress: widget.onLongPress,
+              child: face,
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Navy foil: white border and one flat diagonal light-blue sheen band.
+class FoilFace extends StatelessWidget {
+  const FoilFace({super.key, required this.child, this.border = 3});
+
+  final Widget child;
+  final double border;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(AppRadius.sticker);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        borderRadius: radius,
+        border: Border.all(color: AppColors.paper, width: border),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: CustomPaint(painter: const _SheenPainter(), child: child),
+      ),
+    );
+  }
+}
+
+class _SheenPainter extends CustomPainter {
+  const _SheenPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = AppColors.accentLight.withValues(alpha: 0.35);
+    final w = size.width * 0.3;
+    final x = size.width * 0.38;
+    final skew = size.height * 0.58; // ~30° lean
+    final path = Path()
+      ..moveTo(x + skew / 2, 0)
+      ..lineTo(x + skew / 2 + w, 0)
+      ..lineTo(x - skew / 2 + w, size.height)
+      ..lineTo(x - skew / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_SheenPainter old) => false;
+}
+
+/// A small paper or foil sticker for summaries (finish page, history, progress).
+class MiniSticker extends StatelessWidget {
+  const MiniSticker({super.key, required this.weight, this.record = false, this.width = 38, this.height = 42});
+
+  final double weight;
+  final bool record;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = formatWeight(weight);
+    final size = label.length > 3 ? height * 0.36 : height * 0.42;
+    final text = Text(label, style: AppText.sticker.copyWith(fontSize: size, color: record ? AppColors.onAccent : AppColors.paperInk));
+    return SizedBox(
+      width: record ? math.max(width, height) : width,
+      height: height,
+      child: record
+          ? FoilFace(border: 2, child: Center(child: text))
+          : DecoratedBox(
+              decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(5)),
+              child: Center(child: text),
+            ),
     );
   }
 }

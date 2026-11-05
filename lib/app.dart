@@ -6,7 +6,6 @@ import 'ui/screens/history_screen.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/progress_screen.dart';
 import 'ui/screens/templates_screen.dart';
-import 'ui/widgets/kaiju.dart';
 import 'ui/widgets/motion.dart';
 import 'ui/widgets/store_scope.dart';
 
@@ -63,7 +62,7 @@ class _AppShellState extends State<AppShell> {
   }
 }
 
-/// Bottom bar. The active tab wears a small spike crest (the mascot's back).
+/// Material 3 navigation bar: the active tab gets a navy pill behind its icon.
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.tabs, required this.icons, required this.selected, required this.onSelect});
 
@@ -78,12 +77,11 @@ class _BottomNav extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.chip)),
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 70,
+          height: 80,
           child: Row(children: [
             for (var i = 0; i < tabs.length; i++)
               Expanded(
@@ -93,19 +91,22 @@ class _BottomNav extends StatelessWidget {
                   child: InkWell(
                     onTap: () => onSelect(i),
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      AnimatedScale(
+                      AnimatedContainer(
                         duration: fast,
-                        scale: i == selected ? 1 : 0,
-                        curve: Motion.pop,
-                        child: const SpikeCrest(),
+                        curve: Curves.easeOutCubic,
+                        width: 64,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: i == selected ? AppColors.accent : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(icons[i], size: 24, color: i == selected ? AppColors.onAccent : AppColors.muted),
                       ),
                       const SizedBox(height: 4),
-                      Icon(icons[i], size: 22, color: i == selected ? AppColors.accentLight : AppColors.muted),
-                      const SizedBox(height: 2),
                       Text(tabs[i],
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: i == selected ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight: i == selected ? FontWeight.w700 : FontWeight.w500,
                             color: i == selected ? AppColors.text : AppColors.muted,
                           )),
                     ]),

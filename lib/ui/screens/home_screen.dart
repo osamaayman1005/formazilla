@@ -6,9 +6,9 @@ import '../../data/models.dart';
 import '../../state/app_store.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
-import '../widgets/mascot_says.dart';
 import '../widgets/motion.dart';
 import '../widgets/split_sheet.dart';
+import '../widgets/set_chip.dart' show FoilFace;
 import '../widgets/store_scope.dart';
 
 /// Home: pick a day and rotation (pre-selected from history, never forced) and start.
@@ -34,60 +34,133 @@ class _HomeScreenState extends State<HomeScreen> {
     final rotation = rotations.where((r) => r.id == _rotationId).firstOrNull ?? store.suggestedRotation(dayId);
     final active = store.activeSession;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.xl, AppSpace.screen, AppSpace.xl),
-      children: [
-        MascotSays(message: active != null ? 'Let’s finish this!' : 'Ready to train?'),
-        const SizedBox(height: AppSpace.xl),
-        if (active != null)
-          _ResumeCard(store: store, session: active)
-        else ...[
-          Row(children: [
-            const Expanded(child: SectionLabel('Day')),
-            // Current split; tap to switch or create one.
-            TextButton.icon(
-              onPressed: () => showSplitSwitcher(context, store),
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              iconAlignment: IconAlignment.end,
-              icon: const Icon(Icons.expand_more, size: 18, color: AppColors.accentLight),
-              label: Text(store.activeSplit.name,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accentLight)),
+    final startLabel = rotation == null ? null : store.rotationLabel(rotation.dayId, rotation.id);
+    return Column(children: [
+      Expanded(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.sm, AppSpace.screen, AppSpace.xl),
+          children: [
+            _HomeHeader(greeting: active != null ? 'Let’s finish this!' : 'Ready to train?'),
+            const SizedBox(height: AppSpace.lg),
+            Text(
+              active != null
+                  ? '${store.sessionTitle(active)} is still open'
+                  : startLabel == null
+                      ? '${store.dayById(dayId)?.name ?? suggested.name} is next'
+                      : '$startLabel is next',
+              style: AppText.display,
             ),
-          ]),
-          _DaySwitcher(
-            days: days,
-            selectedId: dayId,
-            suggestedId: suggested.id,
-            lastDone: store.lastDoneAt,
-            onSelect: (id) => setState(() {
-              _dayId = id;
-              _rotationId = null;
-            }),
-          ),
-          const SizedBox(height: AppSpace.lg),
-          const SectionLabel('Rotation'),
-          _RotationPicker(
-            rotations: rotations,
-            selected: rotation,
-            suggested: store.suggestedRotation(dayId),
-            onSelect: (r) => setState(() => _rotationId = r.id),
-          ),
-          const SizedBox(height: AppSpace.lg),
-          if (rotation != null) _StartCard(store: store, rotation: rotation),
-          const SizedBox(height: AppSpace.sm),
-          Text(
-            dayId == suggested.id
-                ? 'Suggested from your last workout. Tap any day or rotation to switch.'
-                : 'You picked ${store.dayById(dayId)?.name}. ${suggested.name} is still suggested.',
-            style: AppText.small,
-          ),
-          const SizedBox(height: AppSpace.xl),
-          const SectionLabel('Outside your plan'),
-          _OneTimeCard(onTap: () => openSession(context, store.startOneTime())),
-        ],
-        const SizedBox(height: AppSpace.xl),
-        _RecentRecords(store: store),
-      ],
+            const SizedBox(height: 6),
+            Text(
+              active != null
+                  ? 'Pick up where you stopped.'
+                  : dayId == suggested.id
+                      ? 'Suggested from your last workout. Tap any day or rotation to switch.'
+                      : 'You picked ${store.dayById(dayId)?.name}. ${suggested.name} is still suggested.',
+              style: AppText.caption.copyWith(fontSize: 15),
+            ),
+            const SizedBox(height: AppSpace.lg),
+            if (active != null)
+              _ResumeCard(store: store, session: active)
+            else ...[
+              Row(children: [
+                const Expanded(child: SectionLabel('Day')),
+                OutlinedButton.icon(
+                  onPressed: () => showSplitSwitcher(context, store),
+                  iconAlignment: IconAlignment.end,
+                  icon: const Icon(Icons.expand_more, size: 18),
+                  label: Text(store.activeSplit.name),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: AppSpace.sm),
+              _DaySwitcher(
+                days: days,
+                selectedId: dayId,
+                suggestedId: suggested.id,
+                lastDone: store.lastDoneAt,
+                onSelect: (id) => setState(() {
+                  _dayId = id;
+                  _rotationId = null;
+                }),
+              ),
+              const SizedBox(height: AppSpace.lg),
+              const SectionLabel('Rotation'),
+              _RotationPicker(
+                rotations: rotations,
+                selected: rotation,
+                suggested: store.suggestedRotation(dayId),
+                onSelect: (r) => setState(() => _rotationId = r.id),
+              ),
+              const SizedBox(height: AppSpace.lg),
+              if (rotation != null) _PlanPreview(store: store, rotation: rotation),
+              const SizedBox(height: AppSpace.md),
+              _OneTimeCard(onTap: () => openSession(context, store.startOneTime())),
+            ],
+            const SizedBox(height: AppSpace.xl),
+            _RecentRecords(store: store),
+          ],
+        ),
+      ),
+      if (active == null && rotation != null)
+        _BottomAction(
+          label: 'Start $startLabel',
+          onPressed: () => openSession(context, store.startSession(rotation)),
+        ),
+    ]);
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.greeting});
+
+  final String greeting;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.asset('assets/logo.png', width: 40, height: 40),
+      ),
+      const SizedBox(width: AppSpace.md),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Formazilla',
+            style: TextStyle(fontFamily: AppFonts.condensed, fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.text)),
+        Text(greeting, style: AppText.caption),
+      ]),
+    ]);
+  }
+}
+
+/// The screen's main action, pinned in thumb reach above the tabs.
+class _BottomAction extends StatelessWidget {
+  const _BottomAction({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        border: Border(top: BorderSide(color: AppColors.card)),
+      ),
+      padding: const EdgeInsets.fromLTRB(AppSpace.screen, AppSpace.md, AppSpace.screen, AppSpace.md),
+      child: SizedBox(
+        height: 56,
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: onPressed,
+          icon: const Icon(Icons.play_arrow_rounded),
+          label: Text(label),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: AppColors.onAccent),
+        ),
+      ),
     );
   }
 }
@@ -296,31 +369,58 @@ class _RotationPicker extends StatelessWidget {
   }
 }
 
-class _StartCard extends StatelessWidget {
-  const _StartCard({required this.store, required this.rotation});
+/// What's in the picked rotation, with last time's top set for each.
+class _PlanPreview extends StatelessWidget {
+  const _PlanPreview({required this.store, required this.rotation});
 
   final AppStore store;
   final Rotation rotation;
 
   @override
   Widget build(BuildContext context) {
-    final label = store.rotationLabel(rotation.dayId, rotation.id);
-    final preview = rotation.exercises.take(4).join(', ');
-    final more = rotation.exercises.length > 4 ? ' +${rotation.exercises.length - 4}' : '';
+    final shown = rotation.exercises.take(4).toList();
+    final rest = rotation.exercises.skip(4).toList();
+    if (rotation.exercises.isEmpty) {
+      return const AppCard(child: Text('No exercises yet. Add them as you go.', style: AppText.caption));
+    }
     return AppCard(
-      padding: const EdgeInsets.all(AppSpace.xl),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: AppText.display),
-        const SizedBox(height: 4),
-        Text(rotation.exercises.isEmpty ? 'No exercises yet — add them as you go' : '$preview$more',
-            style: AppText.caption),
-        const SizedBox(height: AppSpace.lg),
-        PrimaryButton('Start $label', onPressed: () {
-          final s = store.startSession(rotation);
-          openSession(context, s);
-        }),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Column(children: [
+        SizedBox(
+          height: 40,
+          child: Row(children: [
+            Expanded(child: Text('${rotation.exercises.length} exercises', style: AppText.caption)),
+            const Text('Last top set', style: AppText.caption),
+          ]),
+        ),
+        for (final name in shown) ...[
+          const Divider(),
+          SizedBox(
+            height: 46,
+            child: Row(children: [
+              Expanded(child: Text(name, style: AppText.body, overflow: TextOverflow.ellipsis)),
+              Text(_top(name), style: AppText.chip.copyWith(color: AppColors.text)),
+            ]),
+          ),
+        ],
+        if (rest.isNotEmpty) ...[
+          const Divider(),
+          SizedBox(
+            height: 40,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Then ${rest.join(', ')}', style: AppText.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ),
+        ],
       ]),
     );
+  }
+
+  String _top(String name) {
+    final last = store.lastTime(name, '');
+    if (last.isEmpty) return '–';
+    return formatWeight(last.reduce((a, b) => a > b ? a : b));
   }
 }
 
@@ -334,41 +434,69 @@ class _ResumeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = store.sessionTitle(session);
     final mins = DateTime.now().difference(session.startedAt).inMinutes;
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.xl),
-      decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(20)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('In progress · $mins min', style: AppText.caption.copyWith(color: AppColors.accentLight)),
-        const SizedBox(height: 4),
-        Text(label, style: AppText.display.copyWith(color: AppColors.onAccent)),
-        Text('${session.setCount} sets logged', style: AppText.body.copyWith(color: AppColors.onAccent)),
-        const SizedBox(height: AppSpace.lg),
-        PrimaryButton('Resume $label', inverted: true, onPressed: () => openSession(context, session)),
-        const SizedBox(height: AppSpace.xs),
-        Center(
-          child: TextButton(
-            onPressed: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (c) => AlertDialog(
-                  title: const Text('Discard this workout?'),
-                  content: const Text('Logged sets in it will be deleted.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep')),
-                    TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Discard')),
-                  ],
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          color: AppColors.accent,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(children: [
+            Expanded(child: Text(label, style: AppText.band)),
+            Text('$mins min', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onBand)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('${store.exercisesDone(session)} of ${session.exercises.length} exercises · ${session.setCount} sets logged',
+                style: AppText.caption.copyWith(fontSize: 14)),
+            const SizedBox(height: AppSpace.lg),
+            Row(children: [
+              SizedBox(
+                height: 56,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('Discard this workout?'),
+                        content: const Text('Logged sets in it will be deleted.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Keep')),
+                          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Discard')),
+                        ],
+                      ),
+                    );
+                    if (ok == true) store.discardSession(session);
+                  },
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger, side: const BorderSide(color: AppColors.dangerOutline)),
+                  child: const Text('Discard'),
                 ),
-              );
-              if (ok == true) store.discardSession(session);
-            },
-            child: const Text('Discard', style: TextStyle(color: AppColors.accentLight)),
-          ),
+              ),
+              const SizedBox(width: AppSpace.sm),
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton.icon(
+                    onPressed: () => openSession(context, session),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text('Resume $label', overflow: TextOverflow.ellipsis),
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: AppColors.onAccent),
+                  ),
+                ),
+              ),
+            ]),
+          ]),
         ),
       ]),
     );
   }
 }
 
+/// Recent PRs as foil stickers, newest first.
 class _RecentRecords extends StatelessWidget {
   const _RecentRecords({required this.store});
 
@@ -381,27 +509,72 @@ class _RecentRecords extends StatelessWidget {
       const Text('Recent PRs', style: AppText.section),
       const SizedBox(height: AppSpace.sm),
       if (records.isEmpty)
-        const AppCard(child: Text('Beat a previous best and it shows up here.', style: AppText.caption))
-      else
         AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(children: [
-            for (final (i, r) in records.indexed)
-              EnterFromBelow(
-                delay: Duration(milliseconds: 60 * i),
-                child: ListTile(
-                  dense: true,
-                  title: Text(r.exercise, style: AppText.body),
-                  onTap: () => openExercise(context, r.exercise),
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text('+${formatWeight(r.delta)}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.accentLight)),
-                    const SizedBox(width: AppSpace.sm),
-                    Text(formatWeight(r.weight), style: AppText.body.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
-                  ]),
-                ),
-              ),
+          child: Row(children: [
+            Image.asset('assets/mascot.png', width: 84, height: 67, fit: BoxFit.contain),
+            const SizedBox(width: AppSpace.md),
+            const Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Your PR foils land here', style: AppText.cardTitle),
+                SizedBox(height: 4),
+                Text('Beat a previous best and its foil sticker shows up here.', style: AppText.caption),
+              ]),
+            ),
           ]),
+        )
+      else
+        SizedBox(
+          height: 132,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: records.length,
+            separatorBuilder: (_, __) => const SizedBox(width: AppSpace.md),
+            itemBuilder: (context, i) {
+              final r = records[i];
+              return EnterFromBelow(
+                delay: Duration(milliseconds: 60 * i),
+                child: Semantics(
+                  button: true,
+                  label: '${r.exercise}, new PR ${formatWeight(r.weight)}, up ${formatWeight(r.delta)}',
+                  excludeSemantics: true,
+                  child: InkWell(
+                    onTap: () => openExercise(context, r.exercise),
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 92,
+                      child: Column(children: [
+                        const SizedBox(height: 4),
+                        Transform.rotate(
+                          angle: (i.isEven ? -2 : 2) * 3.14159 / 180,
+                          child: SizedBox(
+                            width: 80,
+                            height: 88,
+                            child: FoilFace(
+                              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                FittedBox(
+                                  child: Text(formatWeight(r.weight),
+                                      style: AppText.sticker.copyWith(fontSize: 30, color: AppColors.onAccent)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text('+${formatWeight(r.delta)}',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.onBand)),
+                              ]),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(r.exercise,
+                            style: const TextStyle(fontSize: 13, color: AppColors.text),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center),
+                      ]),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
     ]);
   }

@@ -182,7 +182,7 @@ class Segmented extends StatelessWidget {
                 onTap: () => onChanged(i),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  constraints: BoxConstraints(minWidth: compact ? 40 : 48, minHeight: compact ? 32 : 40),
+                  constraints: BoxConstraints(minWidth: compact ? 44 : 48, minHeight: compact ? 40 : 44),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(

@@ -4,6 +4,7 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../navigation.dart';
 import '../widgets/common.dart';
+import '../widgets/set_chip.dart' show MiniSticker;
 import '../widgets/store_scope.dart';
 
 /// Every exercise you've logged, with its PR. Tap for the chart and history.
@@ -45,10 +46,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: Column(children: [
               for (final e in items)
                 ListTile(
-                  title: Text(e.name, style: AppText.body),
+                  title: Text(e.name, style: AppText.body.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
                   subtitle: Text(formatAgo(e.lastUsed, DateTime.now()), style: AppText.small),
-                  trailing: Text('PR ${formatWeight(e.record)}',
-                      style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
+                  trailing: Semantics(
+                    label: 'Best ${formatWeight(e.record)}',
+                    excludeSemantics: true,
+                    child: MiniSticker(weight: e.record, width: 52, height: 54),
+                  ),
                   onTap: () => openExercise(context, e.name),
                 ),
             ]),
