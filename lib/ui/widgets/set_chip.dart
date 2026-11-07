@@ -117,11 +117,15 @@ class _SetChipState extends State<SetChip> with SingleTickerProviderStateMixin {
     final radius = BorderRadius.circular(AppRadius.sticker);
     final Widget face = switch (widget.kind) {
       ChipKind.done => Container(
-          decoration: BoxDecoration(color: AppColors.paper, borderRadius: radius),
+          decoration: BoxDecoration(
+            color: AppColors.stickerFill,
+            borderRadius: radius,
+            border: Border.all(color: AppColors.stickerEdge, width: 2),
+          ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            _number(AppColors.paperInk),
+            _number(AppColors.stickerInk),
             const SizedBox(height: 4),
-            _caption(AppColors.paperCaption),
+            _caption(AppColors.stickerCaption),
           ]),
         ),
       ChipKind.record => FoilFace(
@@ -240,14 +244,18 @@ class MiniSticker extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = formatWeight(weight);
     final size = label.length > 3 ? height * 0.36 : height * 0.42;
-    final text = Text(label, style: AppText.sticker.copyWith(fontSize: size, color: record ? AppColors.onAccent : AppColors.paperInk));
+    final text = Text(label, style: AppText.sticker.copyWith(fontSize: size, color: record ? AppColors.onAccent : AppColors.stickerInk));
     return SizedBox(
       width: record ? math.max(width, height) : width,
       height: height,
       child: record
           ? FoilFace(border: 2, child: Center(child: text))
           : DecoratedBox(
-              decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(5)),
+              decoration: BoxDecoration(
+                color: AppColors.stickerFill,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: AppColors.stickerEdge, width: 1.5),
+              ),
               child: Center(child: text),
             ),
     );

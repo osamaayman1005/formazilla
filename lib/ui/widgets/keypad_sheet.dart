@@ -145,22 +145,26 @@ class _KeypadState extends State<_Keypad> {
     return Container(
       width: 132,
       height: 132,
-      decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: AppColors.stickerFill,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.stickerEdge, width: 2),
+      ),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: _replace ? AppColors.paperSelection : Colors.transparent,
+            color: _replace ? AppColors.accent : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
           ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(_text, style: AppText.sticker.copyWith(fontSize: 60)),
+            child: Text(_text, style: AppText.sticker.copyWith(fontSize: 60, color: AppColors.stickerInk)),
           ),
         ),
         if (widget.unit != null) ...[
           const SizedBox(height: 8),
-          Text(widget.unit!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.paperCaption)),
+          Text(widget.unit!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.stickerCaption)),
         ],
       ]),
     );

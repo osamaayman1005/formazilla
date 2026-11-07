@@ -32,6 +32,12 @@ class AppColors {
 
   /// Selected number on the keypad's paper sticker ("typing replaces this").
   static const paperSelection = Color(0xFFC9D8FF);
+
+  /// A logged set / logged cardio time: dark sticker with a light-blue edge.
+  static const stickerFill = Color(0xFF141E36);
+  static const stickerEdge = Color(0xFF8CB0FF);
+  static const stickerInk = Color(0xFFF5F7FC);
+  static const stickerCaption = Color(0xFF8CB0FF);
   static const danger = Color(0xFFE5675F);
   static const dangerOutline = Color(0xFFB0504F);
   static const scrim = Color(0xBF050914);

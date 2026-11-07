@@ -540,11 +540,15 @@ class CardioCard extends StatelessWidget {
                         ]),
                       )
                     : DecoratedBox(
-                        decoration: BoxDecoration(color: AppColors.paper, borderRadius: BorderRadius.circular(AppRadius.sticker)),
+                        decoration: BoxDecoration(
+                          color: AppColors.stickerFill,
+                          borderRadius: BorderRadius.circular(AppRadius.sticker),
+                          border: Border.all(color: AppColors.stickerEdge, width: 2),
+                        ),
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text(formatWeight(minutes), style: AppText.sticker.copyWith(fontSize: 26)),
+                          Text(formatWeight(minutes), style: AppText.sticker.copyWith(fontSize: 26, color: AppColors.stickerInk)),
                           const SizedBox(height: 4),
-                          const Text('min', style: TextStyle(fontSize: 11, color: AppColors.paperCaption)),
+                          const Text('min', style: TextStyle(fontSize: 11, color: AppColors.stickerCaption)),
                         ]),
                       ),
               ),
