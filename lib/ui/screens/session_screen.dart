@@ -385,10 +385,19 @@ Future<({String name, bool cardio})?> showAddExerciseSheet(BuildContext context,
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.accentLight)),
                       onTap: () => Navigator.pop(c, (name: query, cardio: false)),
                     ),
+                  if (query.isNotEmpty && !exact)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.timer_outlined, color: AppColors.accentLight),
+                      title: Text('Add “$query” as cardio',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.accentLight)),
+                      subtitle: const Text('Logged in minutes', style: AppText.caption),
+                      onTap: () => Navigator.pop(c, (name: query, cardio: true)),
+                    ),
                   const SizedBox(height: AppSpace.md),
                   const Text('Cardio', style: AppText.section),
                   const SizedBox(height: 2),
-                  const Text('Logged in minutes, no sets.', style: AppText.caption),
+                  const Text('Logged in minutes, no sets. Type a name above to add your own.', style: AppText.caption),
                   const SizedBox(height: AppSpace.sm),
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     for (final name in store.cardioNames)
