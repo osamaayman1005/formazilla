@@ -134,21 +134,21 @@ Future<void> showImportOptions(BuildContext context, AppStore store) async {
   if (how == 'scan') {
     final text = await scanPlanQr(context);
     if (text == null || !context.mounted) return;
-    await _importPlan(context, store, readPlan(text));
+    await importSharedPlan(context, store, readPlan(text));
   } else {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (!context.mounted) return;
-    await _importPlan(context, store, readPlan(data?.text));
+    await importSharedPlan(context, store, readPlan(data?.text));
   }
 }
 
-/// Asks where a shared plan goes, then adds it.
-Future<void> _importPlan(BuildContext context, AppStore store, SharedPlan? plan) async {
+/// Asks where a shared plan goes, then adds it. True when it was added.
+Future<bool> importSharedPlan(BuildContext context, AppStore store, SharedPlan? plan) async {
   if (plan == null) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('No plan found. Copy the whole Formazilla message from the chat, then tap Import.'),
     ));
-    return;
+    return false;
   }
 
   // Where a single rotation can go: a day with the same name first.
@@ -221,7 +221,7 @@ Future<void> _importPlan(BuildContext context, AppStore store, SharedPlan? plan)
       ),
     ),
   );
-  if (result == null || !context.mounted) return;
+  if (result == null || !context.mounted) return false;
 
   final String message;
   if (result is Day) {
@@ -233,6 +233,7 @@ Future<void> _importPlan(BuildContext context, AppStore store, SharedPlan? plan)
   }
   HapticFeedback.mediumImpact();
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  return true;
 }
 
 /// A radio-style option card (or, with [icon], a plain tappable row).

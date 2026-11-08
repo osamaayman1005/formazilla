@@ -8,6 +8,7 @@ import '../core/format.dart';
 import '../data/models.dart';
 import '../data/seed.dart';
 import '../data/storage.dart';
+import '../domain/ai_context.dart';
 import '../domain/shared_plan.dart';
 import '../domain/workout_logic.dart' as logic;
 
@@ -640,6 +641,28 @@ class AppStore extends ChangeNotifier {
     _commit();
     return rotation;
   }
+
+  // ---------- Ask your AI (read-only) ----------
+
+  /// The text shared to the user's own AI app. Changes no data.
+  String aiPrompt(AiQuestion question, {String? extra, String? exercise, String? own, DateTime? now}) =>
+      buildAiPrompt(
+        question: question,
+        sessions: _data.sessions,
+        plan: planForSplit(),
+        labelOf: sessionTitle,
+        cardio: isCardio,
+        extra: extra,
+        exercise: exercise,
+        own: own,
+        now: now,
+      );
+
+  /// The workout that finished today, for "Feedback on today's workout".
+  Session? get finishedTodaySession => finishedToday(_data.sessions, DateTime.now());
+
+  /// A plan from an AI with exercise names matched to the ones you already use.
+  SharedPlan withKnownNames(SharedPlan plan) => matchExerciseNames(plan, _data.library);
 
   // ---------- Backup ----------
 

@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../state/app_store.dart';
 import '../navigation.dart';
+import '../widgets/ask_ai_sheet.dart';
 import '../widgets/common.dart';
 import '../widgets/motion.dart';
 import '../widgets/split_sheet.dart';
@@ -100,6 +101,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: AppSpace.md),
               _OneTimeCard(onTap: () => openSession(context, store.startOneTime())),
             ],
+            // Under the session section, never above it.
+            const SizedBox(height: AppSpace.md),
+            _AskAiCard(onTap: () => showAskAiSheet(context, store)),
             const SizedBox(height: AppSpace.xl),
             _RecentRecords(store: store),
           ],
@@ -610,6 +614,56 @@ class _OneTimeCard extends StatelessWidget {
               ),
               Icon(Icons.chevron_right, color: AppColors.muted),
             ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Entry to "Ask your AI coach": a light-blue dashed slip with a chat tile.
+class _AskAiCard extends StatelessWidget {
+  const _AskAiCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Ask your AI coach',
+      excludeSemantics: true,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: DashedBorder(
+            radius: AppRadius.card,
+            color: AppColors.accentLight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.smart_toy_outlined, color: AppColors.onAccent, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Ask your AI coach', style: AppText.cardTitle),
+                      SizedBox(height: 2),
+                      Text('Plan, review or a stuck lift. Uses ChatGPT, Claude or any AI app.', style: AppText.small),
+                    ]),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppColors.accentLight),
+                ]),
+              ),
+            ),
           ),
         ),
       ),

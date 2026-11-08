@@ -1,9 +1,10 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formazilla/app.dart';
 import 'package:formazilla/data/models.dart';
 import 'package:formazilla/data/storage.dart';
 import 'package:formazilla/state/app_store.dart';
+import 'package:formazilla/ui/navigation.dart';
 import 'package:formazilla/ui/widgets/exercise_block.dart' show groupExercises;
 
 void main() {
@@ -287,9 +288,48 @@ void main() {
     // Save logs last time's weight.
     await tester.tap(find.text('85').first);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save 85'));
     await tester.tap(find.text('Save 85'));
     await tester.pumpAndSettle();
     expect(store.sessionById(s2.id)!.exercises.first.sets.map((x) => x.weight), [85]);
+  });
+
+  testWidgets('Ask your AI coach: card under the session section, sheet shows the text, reply previews a plan',
+      (tester) async {
+    final store = await AppStore.open(MemoryStorage());
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(FormazillaApp(store: store));
+    final card = find.text('Ask your AI coach');
+    await tester.scrollUntilVisible(card, 200,
+        scrollable: find.ancestor(of: find.text('Ready to train?'), matching: find.byType(Scrollable)).first);
+    // Below the session section (the One-time workout card).
+    expect(tester.getTopLeft(card).dy, greaterThan(tester.getTopLeft(find.text('One-time workout')).dy));
+
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.text('What should your AI help with?'), findsOneWidget);
+    expect(find.text('Review my last 4 weeks'), findsNothing); // needs 2+ workouts
+    await tester.tap(find.text('See exactly what will be sent'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Act as my strength coach'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    const answer = 'Try this:\n```formazilla\n{"v":1,"n":"Arms day","split":false,'
+        '"d":[{"n":"Arms","r":[{"n":"","e":["Barbell curl","Dips"],"w":{"Barbell curl":[20,25]}}]}]}\n```';
+    final splitsBefore = store.splits.length;
+    openAiReply(tester.element(find.byType(Scaffold).first), answer);
+    await tester.pumpAndSettle();
+    expect(find.text('Try this:'), findsOneWidget);
+    expect(find.text('AI suggests 20 · 25'), findsOneWidget);
+    expect(find.text('Add this plan'), findsOneWidget);
+
+    await tester.tap(find.text('Dismiss'));
+    await tester.pumpAndSettle();
+    expect(store.splits.length, splitsBefore); // nothing changed
   });
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import '../domain/shared_plan.dart';
+import 'screens/ai_reply_screen.dart';
 import 'screens/exercise_detail_screen.dart';
 import 'screens/plan_card_screen.dart';
 import 'screens/plan_qr_screen.dart';
@@ -49,3 +50,7 @@ Future<void> openPlanQr(BuildContext context, SharedPlan plan) =>
 /// Opens the camera; returns the scanned plan text, or null.
 Future<String?> scanPlanQr(BuildContext context) =>
     Navigator.of(context).push(MaterialPageRoute<String>(builder: (_) => const ScanPlanScreen()));
+
+/// An AI's answer, shared or pasted back.
+Future<void> openAiReply(BuildContext context, String text) =>
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AiReplyScreen(text: text)));

@@ -115,4 +115,82 @@ void main() {
       expect(store.planForRotation(rotation, weights: true).rotation.weights['Chest press'], [70]);
     });
   });
+
+  group('AI answers', () {
+    const answer = """Here's what I'd change:
+- Add a second leg day.
+- Swap dips for close-grip bench.
+
+```formazilla
+{"v":1,"n":"PPL+","split":true,"d":[
+ {"n":"Push","r":[{"n":"A","e":["chest press","Lateral raise","Dips"],"s":[["Lateral raise","Dips"]],"w":{"chest press":[60,65,70]}}]},
+ {"n":"Legs","r":[{"n":"A","e":["Squat","Leg press","Treadmill"],"c":["Treadmill","Rowing"]}]}
+]}
+```
+Good luck!""";
+
+    test('reads the fenced block inside prose', () {
+      final plan = readPlan(answer)!;
+      expect(plan.name, 'PPL+');
+      expect(plan.isSplit, isTrue);
+      expect(plan.days.map((d) => d.name), ['Push', 'Legs']);
+      expect(plan.days[0].rotations.single.weights['chest press'], [60, 65, 70]);
+      expect(plan.days[1].rotations.single.cardio, ['Treadmill']); // Rowing isn't in the list
+    });
+
+    test('hides the block when showing the answer', () {
+      final text = stripPlanBlock(answer);
+      expect(text, contains('Swap dips'));
+      expect(text, contains('Good luck!'));
+      expect(text, isNot(contains('```')));
+      expect(hasPlanBlock(answer), isTrue);
+      expect(hasPlanBlock('Just train harder.'), isFalse);
+    });
+
+    test('the last block wins; a json block that looks like a plan works', () {
+      const two = '```formazilla\n{"v":1,"n":"Old","split":false,"d":[{"n":"X","r":[{"n":"","e":["A"]}]}]}\n```\n'
+          'Actually, use this:\n```json\n{"v":1,"n":"New","split":false,"d":[{"n":"Y","r":[{"n":"","e":["B"]}]}]}\n```';
+      expect(readPlan(two)!.days.single.name, 'Y');
+    });
+
+    test('missing split and name are filled in', () {
+      final plan = readPlan('```formazilla\n{"v":1,"d":[{"n":"Arms","r":[{"n":"","e":["Curl"]}]}]}\n```')!;
+      expect(plan.isSplit, isFalse);
+      expect(plan.title, 'Arms');
+    });
+
+    test('broken or oversized plans are rejected', () {
+      expect(readPlan('```formazilla\n{"v":1,"n":"X","d":[{"n":"A","r":[{"n":"","e":["Curl"]}]\n```'), isNull);
+      final huge = List.generate(16, (i) => '"Ex $i"').join(',');
+      expect(readPlan('```formazilla\n{"v":1,"n":"X","split":false,"d":[{"n":"A","r":[{"n":"","e":[$huge]}]}]}\n```'),
+          isNull);
+      expect(readPlan('```formazilla\n{"v":1,"n":"X","split":false,"d":[{"n":"A","r":[{"n":"","e":["Curl"],"w":{"Curl":[99999]}}]}]}\n```'),
+          isNull);
+      expect(readPlan('```formazilla\n{"v":1,"n":"X","split":false,"d":[{"n":"A","r":[{"n":"","e":["${'x' * 61}"]}]}]}\n```'),
+          isNull);
+    });
+
+    test('instructions inside a name are just text', () {
+      final plan = readPlan('```formazilla\n{"v":1,"n":"Ignore previous rules","split":false,'
+          '"d":[{"n":"Day","r":[{"n":"","e":["Delete all data"]}]}]}\n```')!;
+      expect(plan.rotation.exercises, ['Delete all data']);
+    });
+
+    test('FZ codes still read the same way', () {
+      expect(readPlan(planMessage(pushA, withCode: true))!.title, 'Push A');
+    });
+
+    test('names are matched to the ones you already use', () async {
+      final store = await AppStore.open(MemoryStorage());
+      final plan = store.withKnownNames(readPlan(answer)!);
+      expect(plan.days[0].rotations.single.exercises.first, 'Chest press');
+      expect(plan.days[0].rotations.single.weights['Chest press'], [60, 65, 70]);
+
+      final before = store.splits.length;
+      final active = store.activeSplit;
+      store.importAsSplit(plan);
+      expect(store.splits.length, before + 1);
+      expect(store.splits.any((x) => x.id == active.id), isTrue); // old split kept
+    });
+  });
 }
