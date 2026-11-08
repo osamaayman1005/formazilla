@@ -130,7 +130,7 @@ components:
 
 **Creative North Star: "The Sticker Album"**
 
-Every workout is a page in a football sticker album. Each logged set is a white paper sticker stuck into its slot; each personal record is a foil. The empty slot shows last time's number printed inside it, the way album slots print the player you're still missing, so repeating a weight is one tap. Panini albums are a shared ritual for Egyptian football fans, and the album grammar gives the app its own face without dressing it up as anything but a fast logging tool.
+Every workout is a page in a football sticker album. Each logged set is a dark sticker with a light-blue edge stuck into its slot; each personal record is a foil. The empty slot shows last time's number printed inside it, the way album slots print the player you're still missing, so repeating a weight is tap and Save. Panini albums are a shared ritual for Egyptian football fans, and the album grammar gives the app its own face without dressing it up as anything but a fast logging tool.
 
 The album world lives only in the numbers: stickers, foils, printed slots and the navy header band over the current exercise. Everything around them is plain Material 3 on the app's original navy: top app bars, a four-tab navigation bar, bottom sheets, snackbars, segmented buttons. Density is medium, targets are big for sweaty thumbs, and the main action always sits at the bottom of the screen.
 
@@ -243,7 +243,7 @@ Stickers have small 6 px corners (5 px when small, 8–10 px when large); cards 
 
 ### Do:
 - **Do** put the screen's main action in the bottom bar at 56 px.
-- **Do** log the printed slot in one tap, and open a clean keypad from +.
+- **Do** open the keypad with the printed weight selected from the slot, and a clean keypad from +.
 - **Do** show every action as a labelled button or visible handle (drop set, superset, edit, reorder, remove).
 - **Do** use foils only for real PRs, and tilt only the newest sticker.
 - **Do** keep data untouched in any redesign: same models, same `formazilla.json`, same signing key.

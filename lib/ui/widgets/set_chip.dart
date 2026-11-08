@@ -8,8 +8,8 @@ import '../../core/theme.dart';
 import 'common.dart';
 import 'motion.dart';
 
-/// done   = logged set: a white paper sticker
-/// ghost  = last time's value printed in an empty slot, tap to log it
+/// done   = logged set: a dark sticker with a light-blue edge
+/// ghost  = last time's value printed in an empty slot, tap to open the keypad with it
 /// record = logged set that beats the all-time PR: a foil sticker
 /// add    = dashed slot, opens a clean keypad
 enum ChipKind { done, ghost, record, add }
@@ -87,7 +87,7 @@ class _SetChipState extends State<SetChip> with SingleTickerProviderStateMixin {
     final ds = widget.dropSet ? ', drop set' : '';
     return switch (widget.kind) {
       ChipKind.add => 'Log a new weight',
-      ChipKind.ghost => 'Log set $n at $_label, same as last time',
+      ChipKind.ghost => 'Set $n, last time $_label. Opens the keypad',
       ChipKind.record => 'Set $n, $_label, new personal record$ds. Edit',
       ChipKind.done => 'Set $n, $_label$ds. Edit',
     };

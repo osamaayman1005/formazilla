@@ -255,6 +255,36 @@ void main() {
     expect(store.archiveDay(store.days.last), isTrue);
     expect(store.archiveDay(store.days.single), isFalse);
   });
+
+  testWidgets('tapping a last-time slot opens the keypad with that weight; nothing logs until Save', (tester) async {
+    final store = await AppStore.open(MemoryStorage());
+    final rotation = store.rotationsOf(store.days.first.id).first;
+    final s1 = store.startSession(rotation);
+    store.addSet(s1, 0, 37.5);
+    store.addSet(s1, 0, 85);
+    store.finishSession(s1);
+    final s2 = store.startSession(rotation);
+
+    await tester.pumpWidget(FormazillaApp(store: store));
+    await tester.tap(find.textContaining('Resume '));
+    await tester.pumpAndSettle();
+
+    // Dismissing the keypad logs nothing.
+    await tester.tap(find.text('85').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Save 85'), findsOneWidget);
+    expect(find.text('Type to replace it, or nudge it'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(store.sessionById(s2.id)!.exercises.first.sets, isEmpty);
+
+    // Save logs last time's weight.
+    await tester.tap(find.text('85').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save 85'));
+    await tester.pumpAndSettle();
+    expect(store.sessionById(s2.id)!.exercises.first.sets.map((x) => x.weight), [85]);
+  });
 }
 
 Session _logOne(AppStore store, Rotation rotation) {

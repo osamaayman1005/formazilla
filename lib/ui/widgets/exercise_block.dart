@@ -236,7 +236,7 @@ class ExerciseBody extends StatelessWidget {
               kind: ChipKind.ghost,
               weight: last[j],
               index: j,
-              onTap: () => _logSame(context, last[j]),
+              onTap: () => _logFromLast(context, last[j]),
             ),
           SetChip(
             key: const ValueKey('add'),
@@ -248,7 +248,7 @@ class ExerciseBody extends StatelessWidget {
       if (showActions) ...[
         if (nextGhost != null) ...[
           const SizedBox(height: AppSpace.sm),
-          Text('Tap ${formatWeight(nextGhost)} to repeat it, or + for a new weight', style: AppText.caption),
+          Text('Tap ${formatWeight(nextGhost)} to log or change it, or + for a new weight', style: AppText.caption),
         ],
         if (hitRecord) ...[
           const SizedBox(height: AppSpace.sm),
@@ -295,13 +295,18 @@ class ExerciseBody extends StatelessWidget {
     ]);
   }
 
-  /// The outlined slot: logs last time's weight in one tap, with Undo.
-  void _logSame(BuildContext context, double weight) {
-    HapticFeedback.lightImpact();
-    final setIndex = _ex.sets.length;
-    store.addSet(session, index, weight);
-    showActionSnackBar(context, 'Set ${setIndex + 1} logged · ${formatWeight(weight)}',
-        action: 'Undo', onAction: () => store.removeSet(session, index, setIndex));
+  /// The outlined "last time" slot: opens the keypad with that weight
+  /// selected, so Save logs it as is, or the first key replaces it.
+  /// Nothing is logged until Save.
+  Future<void> _logFromLast(BuildContext context, double weight) async {
+    HapticFeedback.selectionClick();
+    final ex = _ex;
+    final r = await showWeightKeypad(
+      context,
+      title: '${ex.name} · set ${ex.sets.length + 1}',
+      initial: weight,
+    );
+    if (r?.weight != null) store.addSet(session, index, r!.weight!, dropSet: r.dropSet);
   }
 
   /// "+" (and Drop set) always open a clean keypad: nothing prefilled, so a

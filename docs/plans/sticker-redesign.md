@@ -33,7 +33,7 @@ The redesign changes **looks and usability only**. Every action the app supports
 | | `removeExercise` / `insertExercise` | Workout → Edit → Remove → snackbar Undo |
 | | `linkSuperset` | Workout → Superset → Superset with… → Link |
 | | `unlinkSuperset` | Workout → superset group → Unlink |
-| Sets | `addSet` (same weight) | Workout → outlined last-time slot (one tap, no keypad) |
+| Sets | `addSet` (same weight) | Workout → outlined last-time slot → keypad with that weight selected → Save |
 | | `addSet` (new weight) | Workout → + slot → clean keypad → Save |
 | | `updateSet` | Workout → logged sticker → keypad with that weight selected → Save |
 | | `removeSet` | Logged sticker → keypad → Delete set (Undo snackbar) |

@@ -307,7 +307,7 @@
  ],
  "narrative": {
   "northStar": "The Sticker Album",
-  "overview": "Every workout is a page in a football sticker album. Each logged set is a white paper sticker stuck into its slot; each personal record is a foil. The empty slot shows last time's number printed inside it, so repeating a weight is one tap. The album world lives only in the numbers; everything around them is plain Material 3 on the app's original navy. Ease of use outranks looks.",
+  "overview": "Every workout is a page in a football sticker album. Each logged set is a dark sticker with a light-blue edge stuck into its slot; each personal record is a foil. The empty slot shows last time's number printed inside it, so repeating a weight is tap and Save. The album world lives only in the numbers; everything around them is plain Material 3 on the app's original navy. Ease of use outranks looks.",
   "keyCharacteristics": [
    "Navy page, white paper stickers, navy foils with one light-blue sheen band.",
    "Condensed heavy Archivo numerals, tabular, as the loudest thing on every screen.",
@@ -344,7 +344,7 @@
   ],
   "dos": [
    "Do put the screen's main action in the bottom bar at 56 px.",
-   "Do log the printed slot in one tap, and open a clean keypad from +.",
+   "Do open the keypad with the printed weight selected from the slot, and a clean keypad from +.",
    "Do show every action as a labelled button or visible handle (drop set, superset, edit, reorder, remove).",
    "Do use foils only for real PRs, and tilt only the newest sticker.",
    "Do keep data untouched in any redesign: same models, same formazilla.json, same signing key."

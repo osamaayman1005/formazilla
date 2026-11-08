@@ -38,7 +38,7 @@ One-tap set logging seeded from last time, automatic PRs, and a next-workout sug
 - Flutter app shipped as a signed APK from CI; no store listing yet.
 - No new features in the current redesign: it changes look and usability only.
 - The redesign must never erase data: no change to the data models, the `formazilla.json` file or its schema (v4), or the APK signing key. A new build installs over the old one and keeps every workout, PR and plan. Any future schema change needs a tested migration from the previous version.
-- Set logging: tapping the outlined "last time" slot logs that weight in one tap with no keypad. Tapping + opens a clean, empty keypad (no prefilled weight) so a new number is typed without erasing anything. Tapping a logged sticker opens the keypad with that set's weight, to edit or delete it.
+- Set logging: tapping the outlined "last time" slot opens the keypad with that weight selected: Save logs it as is, or the first key replaces it. Tapping + opens a clean, empty keypad (no prefilled weight) so a new number is typed without erasing anything. Tapping a logged sticker opens the keypad with that set's weight, to edit or delete it.
 
 ## Brand Commitments
 
