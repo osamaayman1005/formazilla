@@ -303,8 +303,8 @@ void main() {
 
     await tester.pumpWidget(FormazillaApp(store: store));
     final card = find.text('Ask your AI coach');
-    await tester.scrollUntilVisible(card, 200,
-        scrollable: find.ancestor(of: find.text('Ready to train?'), matching: find.byType(Scrollable)).first);
+    await tester.dragUntilVisible(card, find.byType(ListView).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
     // Below the session section (the One-time workout card).
     expect(tester.getTopLeft(card).dy, greaterThan(tester.getTopLeft(find.text('One-time workout')).dy));
 
