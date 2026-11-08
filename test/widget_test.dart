@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:formazilla/app.dart';
 import 'package:formazilla/data/models.dart';
@@ -264,6 +265,11 @@ void main() {
     store.addSet(s1, 0, 85);
     store.finishSession(s1);
     final s2 = store.startSession(rotation);
+
+    // A phone-sized screen (360 × 800).
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
 
     await tester.pumpWidget(FormazillaApp(store: store));
     await tester.tap(find.textContaining('Resume '));

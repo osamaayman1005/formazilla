@@ -112,6 +112,17 @@ class _SetChipState extends State<SetChip> with SingleTickerProviderStateMixin {
     return Text(_label, style: AppText.sticker.copyWith(color: color, fontSize: long ? 20 : 24));
   }
 
+  /// Number over caption, shrunk to fit when the phone uses large text.
+  Widget _fit(List<Widget> children) => Padding(
+        padding: const EdgeInsets.all(3),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(mainAxisSize: MainAxisSize.min, children: children),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(AppRadius.sticker);
@@ -122,14 +133,14 @@ class _SetChipState extends State<SetChip> with SingleTickerProviderStateMixin {
             borderRadius: radius,
             border: Border.all(color: AppColors.stickerEdge, width: 2),
           ),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          child: _fit([
             _number(AppColors.stickerInk),
             const SizedBox(height: 4),
             _caption(AppColors.stickerCaption),
           ]),
         ),
       ChipKind.record => FoilFace(
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          child: _fit([
             _number(AppColors.onAccent),
             const SizedBox(height: 4),
             _caption(AppColors.onBand),
@@ -137,7 +148,7 @@ class _SetChipState extends State<SetChip> with SingleTickerProviderStateMixin {
         ),
       ChipKind.ghost => Container(
           decoration: BoxDecoration(borderRadius: radius, border: Border.all(color: AppColors.line, width: 1.5)),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          child: _fit([
             Text(_label, style: AppText.sticker.copyWith(color: AppColors.muted, fontWeight: FontWeight.w700,
                 fontSize: _label.length > 3 ? 20 : 24)),
             const SizedBox(height: 4),
@@ -191,6 +202,17 @@ class FoilFace extends StatelessWidget {
 
   final Widget child;
   final double border;
+
+  /// Number over caption, shrunk to fit when the phone uses large text.
+  Widget _fit(List<Widget> children) => Padding(
+        padding: const EdgeInsets.all(3),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(mainAxisSize: MainAxisSize.min, children: children),
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {

@@ -180,7 +180,9 @@ class _KeypadState extends State<_Keypad> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(AppSpace.screen, 0, AppSpace.screen, AppSpace.lg),
-        child: Column(
+        // Scrolls only on very short screens or large text, so Save is never cut off.
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -289,6 +291,7 @@ class _KeypadState extends State<_Keypad> {
               ),
             ]),
           ],
+        ),
         ),
       ),
     );
