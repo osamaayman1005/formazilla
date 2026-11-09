@@ -75,7 +75,7 @@ class _AskAiSheetState extends State<_AskAiSheet> {
     if (mounted) Navigator.pop(context);
     await SharePlus.instance.share(ShareParams(text: text));
     messenger.showSnackBar(const SnackBar(
-      content: Text('Copied too. Paste it if your AI app isn’t in the list. Then share or paste the answer back here.'),
+      content: Text('Copied too. Paste it if your AI app isn’t in the list. Then copy the answer and tap Paste AI reply.'),
       duration: Duration(seconds: 6),
     ));
   }
@@ -86,6 +86,12 @@ class _AskAiSheetState extends State<_AskAiSheet> {
     if (!mounted) return;
     Navigator.pop(context);
     final text = data?.text?.trim() ?? '';
+    if (text.startsWith('I use Formazilla, an offline gym logbook')) {
+      ScaffoldMessenger.of(widget.parent).showSnackBar(const SnackBar(
+        content: Text('That’s your question, not the answer. Copy your AI’s answer, then tap Paste AI reply.'),
+      ));
+      return;
+    }
     if (text.isEmpty) {
       ScaffoldMessenger.of(widget.parent).showSnackBar(const SnackBar(
         content: Text('Nothing copied yet. Copy your AI’s whole answer, then tap Paste AI reply.'),

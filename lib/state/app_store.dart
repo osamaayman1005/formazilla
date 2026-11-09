@@ -423,7 +423,7 @@ class AppStore extends ChangeNotifier {
     if (pair.length != 2) return;
     final a = s.exercises.indexWhere((e) => exerciseKey(e.name) == exerciseKey(pair[0]) && e.supersetId == null);
     final b = s.exercises.indexWhere((e) => exerciseKey(e.name) == exerciseKey(pair[1]) && e.supersetId == null);
-    if (a < 0 || b < 0) return;
+    if (a < 0 || b < 0 || a == b || s.exercises[a].cardio || s.exercises[b].cardio) return;
     final first = s.exercises[a];
     final second = s.exercises[b];
     s.exercises.remove(second);
@@ -661,8 +661,24 @@ class AppStore extends ChangeNotifier {
   /// The workout that finished today, for "Feedback on today's workout".
   Session? get finishedTodaySession => finishedToday(_data.sessions, DateTime.now());
 
-  /// A plan from an AI with exercise names matched to the ones you already use.
-  SharedPlan withKnownNames(SharedPlan plan) => matchExerciseNames(plan, _data.library);
+  /// A plan from an AI with exercise names matched to the ones you already
+  /// use. A lift you've logged weights for is never turned into cardio.
+  SharedPlan withKnownNames(SharedPlan plan) {
+    final matched = matchExerciseNames(plan, _data.library);
+    return SharedPlan(name: matched.name, isSplit: matched.isSplit, days: [
+      for (final d in matched.days)
+        SharedDay(name: d.name, rotations: [
+          for (final r in d.rotations)
+            SharedRotation(
+              name: r.name,
+              exercises: r.exercises,
+              supersets: r.supersets,
+              cardio: [for (final c in r.cardio) if (isCardio(c) || record(c) == null) c],
+              weights: r.weights,
+            ),
+        ]),
+    ]);
+  }
 
   // ---------- Backup ----------
 

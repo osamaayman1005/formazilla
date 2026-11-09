@@ -176,6 +176,40 @@ Good luck!""";
       expect(plan.rotation.exercises, ['Delete all data']);
     });
 
+    test('cardio is never supersetted; pairs only', () {
+      final plan = readPlan('```formazilla\n{"v":1,"n":"X","d":[{"n":"Legs","r":[{"n":"",'
+          '"e":["Squat","Treadmill","Leg press","Leg curl"],"c":["Treadmill"],'
+          '"s":[["Treadmill","Squat"],["Leg press","Leg curl","Squat"],["Leg press","Leg curl"]]}]}]}\n```')!;
+      expect(plan.rotation.supersets, [
+        ['Leg press', 'Leg curl'],
+      ]);
+    });
+
+    test('shape decides split vs workout; unnamed rotations get A, B', () {
+      final plan = readPlan('```formazilla\n{"v":1,"n":"X","split":false,"d":[{"n":"Push","r":['
+          '{"e":["Bench"]},{"e":["Dips"]}]}]}\n```')!;
+      expect(plan.isSplit, isTrue);
+      expect(plan.days.single.rotations.map((r) => r.name), ['A', 'B']);
+    });
+
+    test('same exercise twice in a rotation is kept once', () {
+      final plan = readPlan('```formazilla\n{"v":1,"d":[{"n":"Legs","r":[{"n":"","e":["Squat","squat"]}]}]}\n```')!;
+      expect(plan.rotation.exercises, ['Squat']);
+    });
+
+    test('an AI plan cannot turn a lift you log into cardio', () async {
+      final store = await AppStore.open(MemoryStorage());
+      final r = store.rotationsOf(store.days.first.id).first;
+      final s = store.startSession(r);
+      store.addSet(s, 0, 60);
+      store.finishSession(s);
+      final lift = r.exercises.first;
+      final plan = store.withKnownNames(readPlan('```formazilla\n{"v":1,"d":[{"n":"Push","r":[{"n":"",'
+          '"e":["${lift.toLowerCase()}","Rowing"],"c":["${lift.toLowerCase()}","Rowing"]}]}]}\n```')!);
+      expect(plan.rotation.exercises.first, lift);
+      expect(plan.rotation.cardio, ['Rowing']);
+    });
+
     test('FZ codes still read the same way', () {
       expect(readPlan(planMessage(pushA, withCode: true))!.title, 'Push A');
     });

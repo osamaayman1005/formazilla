@@ -96,7 +96,8 @@ String buildAiPrompt({
       case AiQuestion.review:
       case AiQuestion.newPlan:
       case AiQuestion.own:
-        _writeSummary(b, recent, finished, labelOf, summaryCutoff);
+        // PRs are judged against all history; only PRs set inside the window are written.
+        _writeSummary(b, recent, sessions, labelOf, summaryCutoff);
         _writePlan(b, plan);
         _writeLifts(b, planRecent, finished, cardio, liftLimit);
         if (question != AiQuestion.newPlan) _writeCardio(b, planRecent);
@@ -219,7 +220,9 @@ void _writeCardio(StringBuffer b, List<Session> planRecent) {
     final avg = (e.value.reduce((a, b) => a + b) / e.value.length).round();
     return '${e.key}, ${e.value.length} time${e.value.length == 1 ? '' : 's'}, about $avg min';
   });
-  b.writeln('CARDIO: ${parts.join(' · ')}');
+  b
+    ..writeln()
+    ..writeln('CARDIO: ${parts.join(' · ')}');
 }
 
 void _writeStuck(

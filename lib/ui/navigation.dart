@@ -51,6 +51,6 @@ Future<void> openPlanQr(BuildContext context, SharedPlan plan) =>
 Future<String?> scanPlanQr(BuildContext context) =>
     Navigator.of(context).push(MaterialPageRoute<String>(builder: (_) => const ScanPlanScreen()));
 
-/// An AI's answer, shared or pasted back.
+/// An AI's answer, pasted back.
 Future<void> openAiReply(BuildContext context, String text) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AiReplyScreen(text: text)));

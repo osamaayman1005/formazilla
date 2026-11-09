@@ -94,10 +94,10 @@ void main() {
     expect(p, isNot(contains('x' * 301)));
   });
 
-  test('the template block in the prompt is itself a readable plan', () async {
+  test('pasting the question back by mistake never imports the example plan', () async {
     final store = await AppStore.open(MemoryStorage());
-    final plan = readPlan(store.aiPrompt(AiQuestion.newPlan, now: now));
-    expect(plan, isNotNull);
-    expect(plan!.days.single.rotations.single.weights['Exercise 1'], [40, 45, 50]);
+    final prompt = store.aiPrompt(AiQuestion.newPlan, now: now);
+    expect(prompt, contains('"Exercise 1"'));
+    expect(readPlan(prompt), isNull);
   });
 }

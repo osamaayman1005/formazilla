@@ -134,11 +134,45 @@ SharedPlan? readPlan(String? text) {
     // AIs sometimes drop the optional-looking keys.
     final days = json['d'] as List;
     json['n'] ??= 'New split';
-    json['split'] ??= days.length > 1 || ((days.first as Map)['r'] as List).length > 1;
-    return checkPlan(SharedPlan.fromJson(json));
+    // Decided by the shape, not by the AI: one day with one rotation is a workout.
+    json['split'] = days.length > 1 || ((days.first as Map)['r'] as List).length > 1;
+    final plan = checkPlan(SharedPlan.fromJson(json));
+    if (plan == null || _isTemplate(plan)) return null;
+    return _nameRotations(plan);
   } catch (_) {
     return null;
   }
+}
+
+/// The example block in the prompt itself ("PLAN NAME", "Exercise 1"), e.g.
+/// when the user pastes their own question instead of the answer.
+bool _isTemplate(SharedPlan plan) =>
+    plan.name == 'PLAN NAME' ||
+    plan.days.any((d) => d.name == 'DAY NAME' || d.rotations.any((r) => r.exercises.contains('Exercise 1')));
+
+/// Gives a day's rotations A, B, C… when they're unnamed or repeated.
+SharedPlan _nameRotations(SharedPlan plan) {
+  if (!plan.isSplit) return plan;
+  return SharedPlan(name: plan.name, isSplit: true, days: [
+    for (final d in plan.days)
+      SharedDay(
+        name: d.name,
+        rotations: d.rotations.length < 2 ||
+                d.rotations.map((r) => r.name.toLowerCase()).toSet().length == d.rotations.length &&
+                    d.rotations.every((r) => r.name.isNotEmpty)
+            ? d.rotations
+            : [
+                for (final (i, r) in d.rotations.indexed)
+                  SharedRotation(
+                    name: String.fromCharCode(65 + i),
+                    exercises: r.exercises,
+                    supersets: r.supersets,
+                    cardio: r.cardio,
+                    weights: r.weights,
+                  ),
+              ],
+      ),
+  ]);
 }
 
 /// True when [text] has a plan block or code, even a broken one: the reply
@@ -191,7 +225,7 @@ SharedPlan? checkPlan(SharedPlan plan) {
       for (final e in r.exercises) {
         final c = clean(e);
         if (c == null) return null;
-        if (!exercises.contains(c)) exercises.add(c);
+        if (!exercises.any((x) => exerciseKey(x) == exerciseKey(c))) exercises.add(c);
       }
       final weights = <String, List<double>>{};
       for (final entry in r.weights.entries) {
@@ -200,18 +234,23 @@ SharedPlan? checkPlan(SharedPlan plan) {
         if (entry.value.length > 10 || entry.value.any((w) => w.isNaN || w < 0 || w > 9999)) return null;
         weights[c] = entry.value;
       }
+      final cardio = [
+        for (final x in r.cardio)
+          if (exercises.contains(clean(x))) clean(x)!,
+      ];
       rotations.add(SharedRotation(
         name: clean(r.name) ?? '',
         exercises: exercises,
+        // Pairs only, and never cardio (cardio is minutes, it can't be supersetted).
         supersets: [
           for (final p in r.supersets)
-            if (p.length >= 2 && p.every((x) => exercises.contains(clean(x)))) [for (final x in p) clean(x)!],
+            if (p.length == 2 &&
+                exerciseKey(p[0]) != exerciseKey(p[1]) &&
+                p.every((x) => exercises.contains(clean(x)) && !cardio.contains(clean(x))))
+              [for (final x in p) clean(x)!],
         ],
-        cardio: [
-          for (final x in r.cardio)
-            if (exercises.contains(clean(x))) clean(x)!,
-        ],
-        weights: weights,
+        cardio: cardio,
+        weights: {for (final e in weights.entries) if (!cardio.contains(e.key)) e.key: e.value},
       ));
     }
     days.add(SharedDay(name: dayName, rotations: rotations));

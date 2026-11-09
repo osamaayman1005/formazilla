@@ -203,17 +203,6 @@ class FoilFace extends StatelessWidget {
   final Widget child;
   final double border;
 
-  /// Number over caption, shrunk to fit when the phone uses large text.
-  Widget _fit(List<Widget> children) => Padding(
-        padding: const EdgeInsets.all(3),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(mainAxisSize: MainAxisSize.min, children: children),
-          ),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(AppRadius.sticker);
