@@ -86,8 +86,10 @@ components:
     height: "56px"
     padding: "0 20px"
   sticker:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.page}"
+    backgroundColor: "{colors.card}"
+    borderColor: "{colors.sheen}"
+    borderWidth: "2px"
+    textColor: "{colors.paper}"
     typography: "{typography.sticker-number}"
     rounded: "{rounded.sticker}"
     size: "58px 64px"
@@ -137,7 +139,7 @@ The album world lives only in the numbers: stickers, foils, printed slots and th
 Ease of use outranks looks. The user rejected looks that feel like a generic AI app, and anything that costs extra taps or hides an action behind a gesture.
 
 **Key Characteristics:**
-- Navy page, white paper stickers, navy foils with one light-blue sheen band.
+- Navy page, dark stickers with a light-blue edge, navy foils with one light-blue sheen band.
 - Condensed heavy Archivo numerals, tabular, as the loudest thing on every screen.
 - One navy header band per page marks the current exercise or the page's subject.
 - 56 px main buttons in a bottom bar; nothing tappable under 48 px.
@@ -145,7 +147,7 @@ Ease of use outranks looks. The user rejected looks that feel like a generic AI 
 
 ## Colors
 
-The original navy palette, unchanged, plus white sticker paper.
+The original navy palette, unchanged. Logged sets are Card Navy stickers with a Foil Sheen edge (no white faces: they glared in the gym).
 
 ### Primary
 - **Album Navy** (#294DB8): header bands, foil stickers, the main button, the selected day, rotation and tab. One navy band per screen.
@@ -155,16 +157,16 @@ The original navy palette, unchanged, plus white sticker paper.
 - **Night Page** (#0A1224): page ground, the scene is a basement gym under fluorescent light.
 - **Card Navy** (#141E36): cards, sheets, bottom bars, the navigation bar.
 - **Chip Navy** (#1E2A46): tonal buttons, keypad keys, letter badges, list dividers.
-- **Slot Outline** (#5B6A8F): printed slot outlines, outlined buttons, segmented-button borders, field borders. At least 3:1 on every navy, so the one-tap slot stays visible under gym glare.
-- **Sticker Paper** (#F5F7FC): sticker faces and main text on navy.
+- **Slot Outline** (#5B6A8F): printed slot outlines, outlined buttons, segmented-button borders, field borders. At least 3:1 on every navy, so the printed slot stays visible under gym glare.
+- **Sticker Paper** (#F5F7FC): main text on navy and sticker numerals.
 - **Muted Ink** (#949FBD): supporting text, dates, last-time numbers (5:1 or better on every navy).
 - **Band Ink** (#DCE6FF): secondary text on the navy band and foils.
 - **Delete Red** (#E5675F) with its outline (#B0504F): destructive actions only.
 - **Scrim** (#050914 at 75%): behind bottom sheets.
 
 ### Named Rules
-**The Paper Is Earned Rule.** White paper appears only for a logged set, a logged cardio time, or an exercise's best in Progress. Letter and number badges use Chip Navy with Foil Sheen text. Nothing decorative is ever white.
-**The Fresh Foil Rule.** Foil marks a PR from the latest workout (and the Recent PRs strip). Older bests are white paper, so today's wins stand out.
+**The Sticker Is Earned Rule.** The light-blue sticker edge appears only around a logged set, a logged cardio time, or an exercise's best in Progress. Letter and number badges use Chip Navy with Foil Sheen text. Nothing decorative gets a sticker edge.
+**The Fresh Foil Rule.** Foil marks a PR from the latest workout (and the Recent PRs strip). Older bests are plain edged stickers, so today's wins stand out.
 **The One Band Rule.** One navy header band per screen, over the thing being worked on now.
 
 ## Typography
@@ -203,14 +205,20 @@ Stickers have small 6 px corners (5 px when small, 8–10 px when large); cards 
 ## Components
 
 ### Stickers (signature)
-- **Logged set:** Sticker Paper face, Night Page numeral, "set n" caption in Slot Outline; 58×64 in the workout, 30–42 px in summaries.
+- **Logged set:** Card Navy face, 2 px Foil Sheen edge, Sticker Paper numeral, "set n" caption in Foil Sheen; 58×64 in the workout, 30–42 px in summaries (1.5 px edge). Numbers shrink to fit at large text sizes.
 - **PR foil:** Album Navy face, 3 px Sticker Paper border, one diagonal Foil Sheen band at 35%, "PR" caption in Band Ink.
-- **Printed slot:** outline only, last time's number in Muted Ink. Tapping it logs that weight immediately, without a keypad.
+- **Printed slot:** outline only, last time's number in Muted Ink. Tapping it opens the keypad with that weight selected: Save logs it, or the first key replaces it.
 - **New slot:** dashed outline with a plus. Opens a clean, empty keypad.
 - **Drop set:** a slightly narrower sticker pressed against the set before it, joined by a dashed edge, captioned "drop" with a down arrow.
 - **More sets:** slots wrap onto a second row; nothing scrolls sideways.
 - **Cardio:** one wider sticker with the minutes and a "min" caption; no sets, no foil.
 - **Motion:** a new sticker lands at −3° and settles flat in 180 ms with a light haptic; a PR lands as foil with a stronger haptic. With animations off, it appears flat.
+
+### Suggestion slip (Ask your AI coach)
+- A 2 px dashed Foil Sheen outline on the page (no fill), radius 16, at least 64 tall. A 40 px Album Navy tile with a white icon, a Body-bold title, one Label line, and a Foil Sheen chevron.
+- On Home it sits under the session section (resume card, or the day/rotation/one-time block), never above it. It is the only dashed card on Home, so it reads as "optional, open me" and never competes with Start.
+- The Ask sheet lists questions as radio rows (48 tall), "See exactly what will be sent" as a text button, then Paste AI reply (outlined) and Share to my AI (primary) side by side.
+- The reply screen shows the answer on a card, the plan preview on a card with a Foil Sheen edge, and AI weights as outlined pills ("AI suggests 40 · 45"), never as stickers.
 
 ### Album band
 - Album Navy strip, 12×16 padding, band title left, a short status right ("3 of 6", a date) in Band Ink.
@@ -225,10 +233,10 @@ Stickers have small 6 px corners (5 px when small, 8–10 px when large); cards 
 
 ### Keypad
 - Bottom sheet. Opened from +, it starts empty: dashed preview with a cursor and "type the weight", last time shown as a hint only, Save reads "Type a weight to save" until a number is typed. Keys 64 tall on Chip Navy.
-- Opened from a logged sticker, it shows that set's weight on a paper sticker, already selected, so typing replaces it without erasing. It adds −5/−2.5/+2.5/+5 nudges, Drop set, Delete set and "Save 30".
+- Opened from a logged sticker, it shows that set's weight on an edged sticker, already selected (Album Navy highlight), so typing replaces it without erasing. It adds −5/−2.5/+2.5/+5 nudges, Drop set, Delete set and "Save 30".
 
 ### Empty states
-- The mascot plus one plain sentence about what will appear, and one tonal button to the next useful place. No foil or paper stickers until something is logged; History uses the mascot, Progress uses three empty printed slots.
+- The mascot plus one plain sentence about what will appear, and one tonal button to the next useful place. No foil or edged stickers until something is logged; History uses the mascot, Progress uses three empty printed slots.
 
 ### Segmented buttons and pickers
 - Day picker: three 72 px tiles; selected tile is Album Navy with "Suggested" in Band Ink. Rotation and share pickers: outlined pill segments, the selected one filled navy with a check.

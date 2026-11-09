@@ -262,7 +262,7 @@
    "refersTo": "sticker",
    "description": "A logged set.",
    "html": "<span class=\"ds-sticker\"><b>30</b><small>set 2</small></span>",
-   "css": ".ds-sticker{width:58px;height:64px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#F5F7FC;color:#0A1224;border-radius:6px;font-family:Archivo,Roboto,sans-serif} .ds-sticker b{font-size:24px;font-weight:800;font-stretch:82%;font-variant-numeric:tabular-nums;line-height:1} .ds-sticker small{font-size:11px;color:#5B6A8F}"
+   "css": ".ds-sticker{width:58px;height:64px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-sizing:border-box;background:#141E36;color:#F5F7FC;border:2px solid #8CB0FF;border-radius:6px;font-family:Archivo,Roboto,sans-serif} .ds-sticker b{font-size:24px;font-weight:800;font-stretch:82%;font-variant-numeric:tabular-nums;line-height:1} .ds-sticker small{font-size:11px;color:#8CB0FF}"
   },
   {
    "name": "PR Foil",
@@ -309,7 +309,7 @@
   "northStar": "The Sticker Album",
   "overview": "Every workout is a page in a football sticker album. Each logged set is a dark sticker with a light-blue edge stuck into its slot; each personal record is a foil. The empty slot shows last time's number printed inside it, so repeating a weight is tap and Save. The album world lives only in the numbers; everything around them is plain Material 3 on the app's original navy. Ease of use outranks looks.",
   "keyCharacteristics": [
-   "Navy page, white paper stickers, navy foils with one light-blue sheen band.",
+   "Navy page, dark stickers with a light-blue edge, navy foils with one light-blue sheen band.",
    "Condensed heavy Archivo numerals, tabular, as the loudest thing on every screen.",
    "One navy header band per page marks the current exercise or the page's subject.",
    "56 px main buttons in a bottom bar; nothing tappable under 48 px.",
@@ -317,13 +317,13 @@
   ],
   "rules": [
    {
-    "name": "The Paper Is Earned Rule",
-    "body": "White paper appears only for a logged set, a logged cardio time, or an exercise's best in Progress. Letter and number badges use Chip Navy with Foil Sheen text. Nothing decorative is ever white.",
+    "name": "The Sticker Is Earned Rule",
+    "body": "The light-blue sticker edge appears only around a logged set, a logged cardio time, or an exercise's best in Progress. Letter and number badges use Chip Navy with Foil Sheen text. Nothing decorative gets a sticker edge.",
     "section": "colors"
    },
    {
     "name": "The Fresh Foil Rule",
-    "body": "Foil marks a PR from the latest workout (and the Recent PRs strip). Older bests are white paper, so today's wins stand out.",
+    "body": "Foil marks a PR from the latest workout (and the Recent PRs strip). Older bests are plain edged stickers, so today's wins stand out.",
     "section": "colors"
    },
    {
