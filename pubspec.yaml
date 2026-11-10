@@ -13,6 +13,9 @@ dependencies:
   share_plus: ^11.0.0
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.0.0
+  # Web version only: gzip for plan codes, browser storage.
+  archive: ^3.6.1
+  web: ^1.1.0
 
 dev_dependencies:
   flutter_test:

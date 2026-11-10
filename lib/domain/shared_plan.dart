@@ -3,9 +3,9 @@
 library;
 
 import 'dart:convert';
-import 'dart:io' show gzip;
 
 import '../core/format.dart';
+import '../core/gzip.dart';
 
 class SharedRotation {
   final String name; // "A", "B" … or "" for a day's only rotation
@@ -104,7 +104,7 @@ const planCodePrefix = 'FZ2:';
 
 /// The code line (and QR content) the app reads back.
 String planCode(SharedPlan plan) =>
-    planCodePrefix + base64Url.encode(gzip.encode(utf8.encode(jsonEncode(plan.toJson()))));
+    planCodePrefix + base64Url.encode(gzipEncode(utf8.encode(jsonEncode(plan.toJson()))));
 
 /// Finds a plan anywhere in [text] (a pasted chat message, a scanned QR, or
 /// an AI's answer). Null when there is none or it's damaged.
@@ -118,7 +118,7 @@ SharedPlan? readPlan(String? text) {
   if (match != null) {
     try {
       final bytes = base64Url.decode(match.group(2)!);
-      final raw = match.group(1) == '2' ? gzip.decode(bytes) : bytes;
+      final raw = match.group(1) == '2' ? gzipDecode(bytes) : bytes;
       final json = jsonDecode(utf8.decode(raw)) as Map<String, dynamic>;
       // Codes come from Formazilla itself: same rules as always.
       final plan = SharedPlan.fromJson(json);

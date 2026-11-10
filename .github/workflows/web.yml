@@ -1,0 +1,94 @@
+name: Web app
+
+# Builds the web version (works on iPhone: Safari -> Share -> Add to Home Screen)
+# and publishes it to GitHub Pages: https://osamaayman1005.github.io/formazilla/
+# The Android workflow (build.yml) is separate and unchanged by this one.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # web/ is committed (icons, manifest, offline worker); create only adds
+      # what's missing and never overwrites those files.
+      - name: Add web platform files
+        run: flutter create . --project-name formazilla --org app.formazilla --platforms web
+
+      - run: flutter pub get
+
+      # The same tests as Android, compiled for and run inside Chrome, so the
+      # web storage and gzip paths are exercised for real.
+      - name: Test in Chrome
+        run: flutter test --platform chrome
+
+      # Everything served from our own site (no CDN), so it opens offline.
+      - name: Build
+        run: flutter build web --release --base-href /formazilla/ --no-web-resources-cdn
+
+      - name: Fill in the offline worker
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          root = 'build/web'
+          skip = {'sw.js', 'flutter_service_worker.js', '.last_build_id'}
+          files = ['./']
+          for d, _, names in os.walk(root):
+              for n in sorted(names):
+                  rel = os.path.relpath(os.path.join(d, n), root).replace(os.sep, '/')
+                  if rel in skip or rel.endswith('.symbols') or rel.endswith('.map'):
+                      continue
+                  files.append(rel)
+          sw = open(os.path.join(root, 'sw.js'), encoding='utf-8').read()
+          sw = sw.replace('__VERSION__', os.environ['GITHUB_SHA'][:12]).replace('__ASSETS__', json.dumps(files, indent=1))
+          open(os.path.join(root, 'sw.js'), 'w', encoding='utf-8').write(sw)
+          size = sum(os.path.getsize(os.path.join(root, f)) for f in files if f != './')
+          print(f'{len(files)} files, {size / 1e6:.1f} MB cached for offline')
+          EOF
+
+      # Kept for 7 days so the build can be checked in a browser before/after deploy.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 7
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
@@ -32,11 +33,19 @@ class _PlanCardScreenState extends State<PlanCardScreen> {
       final boundary = _cardKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
       final image = await boundary.toImage(pixelRatio: 3);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/formazilla-plan.png');
-      await file.writeAsBytes(bytes!.buffer.asUint8List(), flush: true);
+      final png = bytes!.buffer.asUint8List();
+      final XFile shared;
+      if (kIsWeb) {
+        // The web has no files: share the image bytes directly.
+        shared = XFile.fromData(png, mimeType: 'image/png', name: 'formazilla-plan.png');
+      } else {
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/formazilla-plan.png');
+        await file.writeAsBytes(png, flush: true);
+        shared = XFile(file.path, mimeType: 'image/png');
+      }
       await SharePlus.instance.share(ShareParams(
-        files: [XFile(file.path, mimeType: 'image/png')],
+        files: [shared],
         text: '${widget.plan.title} · #Formazilla',
       ));
     } catch (e) {
