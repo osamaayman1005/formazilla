@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Formazilla: an offline gym logbook. Push Pull Legs, A/B rotations, one-tap sets, automatic PRs.">
+  <meta name="theme-color" content="#0A1224">
+  <!-- Add to Home Screen on iPhone: full screen, own icon, own name. -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Formazilla">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>Formazilla</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0A1224; }
+    #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #loading img { width: 96px; height: 96px; border-radius: 22px; opacity: .9; }
+  </style>
+</head>
+<body>
+  <div id="loading"><img src="icons/Icon-192.png" alt="Formazilla is loading"></div>
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Offline: our own service worker (see sw.js), so the app opens in the gym without signal.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
+    }
+    window.addEventListener('flutter-first-frame', function () {
+      var l = document.getElementById('loading'); if (l) l.remove();
+    });
+  </script>
+</body>
+</html>
