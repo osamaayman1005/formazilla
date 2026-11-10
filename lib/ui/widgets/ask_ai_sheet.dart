@@ -168,7 +168,7 @@ class _AskAiSheetState extends State<_AskAiSheet> {
                   child: OutlinedButton.icon(
                     onPressed: _paste,
                     icon: const Icon(Icons.content_paste, size: 20),
-                    label: const Text('Paste AI reply', maxLines: 1),
+                    label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Paste AI reply', maxLines: 1)),
                   ),
                 ),
               ),
@@ -179,7 +179,7 @@ class _AskAiSheetState extends State<_AskAiSheet> {
                   child: FilledButton.icon(
                     onPressed: _share,
                     icon: const Icon(Icons.send_rounded, size: 20),
-                    label: const Text('Share to my AI', maxLines: 1),
+                    label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Share to my AI', maxLines: 1)),
                     style: FilledButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: AppColors.onAccent),
                   ),
                 ),

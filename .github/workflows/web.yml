@@ -64,6 +64,12 @@ jobs:
                   rel = os.path.relpath(os.path.join(d, n), root).replace(os.sep, '/')
                   if rel in skip or rel.endswith('.symbols') or rel.endswith('.map'):
                       continue
+                  # Only the renderer files the default (CanvasKit) build loads:
+                  # canvaskit/ for Safari, canvaskit/chromium/ for Chrome. Other
+                  # variants are fetched (and cached) only if a browser asks.
+                  if rel.startswith('canvaskit/') and not (
+                          rel.startswith('canvaskit/canvaskit.') or rel.startswith('canvaskit/chromium/')):
+                      continue
                   files.append(rel)
           sw = open(os.path.join(root, 'sw.js'), encoding='utf-8').read()
           sw = sw.replace('__VERSION__', os.environ['GITHUB_SHA'][:12]).replace('__ASSETS__', json.dumps(files, indent=1))

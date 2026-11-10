@@ -49,3 +49,10 @@ test/                       logic unit tests + widget/store tests
 
 Push to `main` → GitHub Actions analyzes, tests, builds `formazilla.apk` and publishes it under Releases.
 A failed build opens an issue with the error log.
+
+### Web version (iPhone)
+
+- `.github/workflows/web.yml`: runs the tests in Chrome, builds web, publishes to GitHub Pages: https://osamaayman1005.github.io/formazilla/ (iPhone: Safari → Share → Add to Home Screen). It also pushes the build to the `web-build` branch for browser testing.
+- `web/` is committed (icons, manifest, `sw.js` offline worker filled in by CI); the rest of the platform files are generated.
+- Platform splits use conditional exports, never `dart:io` in shared code: `data/platform_storage.dart` (file on phones, localStorage on web) and `core/gzip.dart` (dart:io vs `archive`). Plan codes must stay readable across both (`test/gzip_compat_test.dart`).
+- Check web changes with `kIsWeb`; the Android path must stay as it was.
