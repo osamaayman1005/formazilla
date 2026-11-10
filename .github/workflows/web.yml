@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -78,6 +78,19 @@ jobs:
           name: web-build
           path: build/web
           retention-days: 7
+
+      # The same files on a branch, so the build can be fetched with git and
+      # tested in a browser (artifact downloads aren't reachable everywhere).
+      - name: Push build to the web-build branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd build/web
+          git init -q -b web-build
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Web build ${GITHUB_SHA::12}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" web-build
 
       - uses: actions/upload-pages-artifact@v3
         with:
