@@ -126,6 +126,8 @@ void main() {
     final s1 = store.startSession(push);
     store.addSet(s1, 0, 60);
     store.finishSession(s1);
+    // Browsers' clocks can give two finishes the same millisecond: keep the order explicit.
+    s1.finishedAt = s1.finishedAt!.subtract(const Duration(minutes: 1));
     expect(store.suggestedDay.name, 'Pull');
 
     final extra = store.startOneTime();
