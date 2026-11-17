@@ -68,18 +68,36 @@ double? personalRecord(String exercise, Iterable<Session> sessions, {String? exc
 /// A weight is a new PR only when it beats an existing record (ties don't count).
 bool isNewRecord(double weight, double? previousBest) => previousBest != null && weight > previousBest;
 
-/// Sets from the most recent finished session that contains this exercise.
+/// How many earlier workouts of an exercise can fill in missing sets.
+const lastTimeLookback = 5;
+
+/// Last time's weights, set by set, from the most recent finished session
+/// that has this exercise.
+///
+/// A shorter workout (a tired day) never shrinks it: sets it didn't reach
+/// keep their values from the workouts before (up to [lastTimeLookback]
+/// workouts back). Last 55 · 85 · 120, then a day with only 55 → still
+/// 55 · 85 · 120. Sets that were logged always win.
 List<double> lastTimeWeights(String exercise, Iterable<Session> sessions, {String? excludeSessionId}) {
   final key = exerciseKey(exercise);
+  final result = <double>[];
+  var seen = 0;
   for (final s in finishedNewestFirst(sessions)) {
     if (s.id == excludeSessionId) continue;
+    List<SetLog>? sets;
     for (final e in s.exercises) {
       if (exerciseKey(e.name) == key && e.sets.isNotEmpty) {
-        return e.sets.map((x) => x.weight).toList();
+        sets = e.sets;
+        break;
       }
     }
+    if (sets == null) continue;
+    for (var i = result.length; i < sets.length; i++) {
+      result.add(sets[i].weight);
+    }
+    if (++seen >= lastTimeLookback) break;
   }
-  return const [];
+  return result;
 }
 
 /// One point per finished session: the top set for this exercise, oldest first.

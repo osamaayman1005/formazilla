@@ -36,6 +36,8 @@ test/                       logic unit tests + widget/store tests
 - A one-time workout counts for PRs (same exercise name) and History only: suggestions, last-time values and Progress read `planWorkouts`.
 - Cardio is any name in `AppData.cardio`; it's logged as minutes (one time button), never as sets, and has no PRs or supersets.
 - Suggestions never enforce: any day/rotation is one tap away.
+- Last-time values are set by set: a shorter workout keeps the later sets from earlier workouts (up to 5 back), so a tired day never clears them.
+- Weights can be negative (assisted machines): −20 beats −30. The keypad's ± key; minus starts on when the last weight was negative.
 - A **split** holds ordered **days**; each day has 1+ **rotations**. Only the active split's history drives the next-day suggestion. Removing a split/day archives it so past workouts keep their names.
 - `android/` is generated in CI (`flutter create .`). Locally run `flutter create . --platforms android` once.
 - Every APK must be signed with `ci/signing.keystore` (CI patches Gradle and checks the cert). A different key forces an uninstall, which wipes the user's data.

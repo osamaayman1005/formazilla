@@ -116,6 +116,42 @@ void main() {
       expect(lastTimeWeights('chest press', h), [45, 60, 70]);
       expect(lastTimeWeights('Squat', h), isEmpty);
     });
+
+    test('a tired day keeps the sets it didn\'t reach', () {
+      final h = [
+        done(pushA, 1, {'Low pull': [55, 85, 120]}),
+        done(pushA, 4, {'Low pull': [60]}), // only one set today
+      ];
+      expect(lastTimeWeights('Low pull', h), [60, 85, 120]);
+    });
+
+    test('a full workout replaces everything; more sets than before are kept', () {
+      final h = [
+        done(pushA, 1, {'Row': [50, 65, 90]}),
+        done(pushA, 4, {'Row': [55, 70, 95, 100]}),
+      ];
+      expect(lastTimeWeights('Row', h), [55, 70, 95, 100]);
+    });
+
+    test('several short days in a row still keep the full list', () {
+      final h = [
+        done(pushA, 1, {'Row': [50, 65, 90]}),
+        done(pushA, 3, {'Row': [52]}),
+        done(pushA, 5, {'Row': [54, 66]}),
+      ];
+      expect(lastTimeWeights('Row', h), [54, 66, 90]);
+    });
+
+    test('a skipped exercise changes nothing; lookback is limited', () {
+      final h = [
+        done(pushA, 1, {'Row': [50, 65, 90, 100]}),
+        for (var d = 2; d <= 6; d++) done(pushA, d, {'Row': [50]}),
+        done(pushA, 7, {'Fly': [20]}),
+      ];
+      // Five 1-set days are the lookback, so the old 4-set day no longer fills in.
+      expect(lastTimeWeights('Row', h), [50]);
+      expect(lastTimeWeights('Row', h.take(3)), [50, 65, 90, 100]);
+    });
   });
 
   group('helpers', () {
