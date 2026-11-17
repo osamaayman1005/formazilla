@@ -48,13 +48,24 @@ Rotation? suggestRotation(String dayId, Iterable<Rotation> rotations, Iterable<S
 DateTime? lastDoneAt(String dayId, Iterable<Session> sessions) =>
     finishedNewestFirst(sessions).where((s) => s.dayId == dayId).firstOrNull?.finishedAt;
 
-/// Best single set ever for an exercise across finished sessions.
-/// [excludeSessionId] lets the live session compare against history only.
-double? personalRecord(String exercise, Iterable<Session> sessions, {String? excludeSessionId}) {
+/// Per-exercise PR resets: exercise key → first workout start that counts.
+typedef PrResets = Map<String, DateTime>;
+
+/// True when [s] counts for [key]'s PR (it's not before that exercise's reset).
+bool countsForRecord(Session s, String key, PrResets resets) {
+  final from = resets[key];
+  return from == null || !s.startedAt.isBefore(from);
+}
+
+/// Best single set for an exercise across finished sessions (since its PR
+/// reset, if any). [excludeSessionId] lets the live session compare against
+/// history only.
+double? personalRecord(String exercise, Iterable<Session> sessions,
+    {String? excludeSessionId, PrResets resets = const {}}) {
   final key = exerciseKey(exercise);
   double? best;
   for (final s in sessions) {
-    if (!s.isFinished || s.id == excludeSessionId) continue;
+    if (!s.isFinished || s.id == excludeSessionId || !countsForRecord(s, key, resets)) continue;
     for (final e in s.exercises) {
       if (exerciseKey(e.name) != key) continue;
       for (final set in e.sets) {
@@ -106,10 +117,13 @@ class TopSet {
   final double weight;
   final List<double> allSets;
   final bool wasRecord;
-  const TopSet(this.date, this.weight, this.allSets, this.wasRecord);
+
+  /// Before this exercise's PR reset: shown in History, never counted.
+  final bool beforeReset;
+  const TopSet(this.date, this.weight, this.allSets, this.wasRecord, {this.beforeReset = false});
 }
 
-List<TopSet> topSetHistory(String exercise, Iterable<Session> sessions) {
+List<TopSet> topSetHistory(String exercise, Iterable<Session> sessions, {PrResets resets = const {}}) {
   final key = exerciseKey(exercise);
   final oldestFirst = finishedNewestFirst(sessions).reversed;
   final out = <TopSet>[];
@@ -121,6 +135,10 @@ List<TopSet> topSetHistory(String exercise, Iterable<Session> sessions) {
     }
     if (sets.isEmpty) continue;
     final top = sets.reduce((a, b) => a > b ? a : b);
+    if (!countsForRecord(s, key, resets)) {
+      out.add(TopSet(s.finishedAt!, top, sets, false, beforeReset: true));
+      continue;
+    }
     final record = isNewRecord(top, best);
     if (best == null || top > best) best = top;
     out.add(TopSet(s.finishedAt!, top, sets, record));
@@ -139,7 +157,7 @@ class RecordEvent {
 }
 
 /// Newest PR events across all exercises.
-List<RecordEvent> recentRecords(Iterable<Session> sessions, {int limit = 5}) {
+List<RecordEvent> recentRecords(Iterable<Session> sessions, {int limit = 5, PrResets resets = const {}}) {
   final best = <String, double>{};
   final names = <String, String>{};
   final events = <RecordEvent>[];
@@ -147,6 +165,7 @@ List<RecordEvent> recentRecords(Iterable<Session> sessions, {int limit = 5}) {
     for (final e in s.exercises) {
       if (e.sets.isEmpty) continue;
       final key = exerciseKey(e.name);
+      if (!countsForRecord(s, key, resets)) continue;
       names[key] = e.name;
       final top = e.sets.map((x) => x.weight).reduce((a, b) => a > b ? a : b);
       final prev = best[key];
@@ -165,15 +184,19 @@ class ExerciseSummary {
   const ExerciseSummary(this.name, this.record, this.lastUsed);
 }
 
-List<ExerciseSummary> exerciseSummaries(Iterable<Session> sessions) {
+List<ExerciseSummary> exerciseSummaries(Iterable<Session> sessions, {PrResets resets = const {}}) {
   final map = <String, ExerciseSummary>{};
+  final counted = <String>{};
   for (final s in finishedNewestFirst(sessions).reversed) {
     for (final e in s.exercises) {
       if (e.sets.isEmpty) continue;
       final key = exerciseKey(e.name);
       final top = e.sets.map((x) => x.weight).reduce((a, b) => a > b ? a : b);
       final old = map[key];
-      final record = old == null || top > old.record ? top : old.record;
+      final counts = countsForRecord(s, key, resets);
+      // The first workout after a reset starts the record over.
+      final fresh = counts && counted.add(key);
+      final record = old == null || fresh || (counts && top > old.record) ? top : old.record;
       map[key] = ExerciseSummary(e.name, record, s.finishedAt!);
     }
   }
@@ -279,8 +302,9 @@ class RecordCardData {
   const RecordCardData(this.exercise, this.record, this.gain, this.since, this.recentTops);
 }
 
-RecordCardData? recordCardData(String exercise, Iterable<Session> sessions, {int bars = 7}) {
-  final history = topSetHistory(exercise, sessions);
+RecordCardData? recordCardData(String exercise, Iterable<Session> sessions,
+    {int bars = 7, PrResets resets = const {}}) {
+  final history = topSetHistory(exercise, sessions, resets: resets).where((p) => !p.beforeReset).toList();
   if (history.isEmpty) return null;
   final record = history.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
   final tops = history.map((p) => p.weight).toList();

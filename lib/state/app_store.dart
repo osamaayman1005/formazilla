@@ -110,8 +110,8 @@ class AppStore extends ChangeNotifier {
   DateTime? lastDoneAt(String dayId) => logic.lastDoneAt(dayId, _plan);
 
   double? recordBefore(String exercise, String sessionId) =>
-      logic.personalRecord(exercise, _data.sessions, excludeSessionId: sessionId);
-  double? record(String exercise) => logic.personalRecord(exercise, _data.sessions);
+      logic.personalRecord(exercise, _data.sessions, excludeSessionId: sessionId, resets: _data.prResets);
+  double? record(String exercise) => logic.personalRecord(exercise, _data.sessions, resets: _data.prResets);
   List<double> lastTime(String exercise, String sessionId) =>
       logic.lastTimeWeights(exercise, _plan, excludeSessionId: sessionId);
 
@@ -123,9 +123,10 @@ class AppStore extends ChangeNotifier {
   String sessionTitle(Session s) =>
       s.oneTime ? (s.title?.trim().isNotEmpty == true ? s.title! : 'One-time workout') : rotationLabel(s.dayId, s.rotationId);
 
-  List<logic.RecordEvent> recentRecords({int limit = 5}) => logic.recentRecords(_data.sessions, limit: limit);
-  List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _plan);
-  List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_plan);
+  List<logic.RecordEvent> recentRecords({int limit = 5}) =>
+      logic.recentRecords(_data.sessions, limit: limit, resets: _data.prResets);
+  List<logic.TopSet> topSets(String exercise) => logic.topSetHistory(exercise, _plan, resets: _data.prResets);
+  List<logic.ExerciseSummary> exerciseSummaries() => logic.exerciseSummaries(_plan, resets: _data.prResets);
   /// "5 of 7 done": the exercise you're on isn't done until you move on.
   int exercisesDone(Session s) => logic.exercisesDone(s);
 
@@ -135,7 +136,51 @@ class AppStore extends ChangeNotifier {
   List<String> get cardioNames => _data.cardio;
 
   List<String> searchLibrary(String q) => logic.searchExercises(q, _data.library);
-  logic.RecordCardData? recordCard(String exercise) => logic.recordCardData(exercise, _data.sessions);
+  logic.RecordCardData? recordCard(String exercise) =>
+      logic.recordCardData(exercise, _data.sessions, resets: _data.prResets);
+
+  // ---------- PR reset (one exercise) ----------
+
+  /// When this exercise's PR was reset (the first workout that counts), if ever.
+  DateTime? recordResetAt(String exercise) => _data.prResets[exerciseKey(exercise)];
+
+  /// The best set of the most recent workout with this exercise: what the PR
+  /// becomes after [resetRecord]. Null when it was never logged.
+  ({double weight, DateTime date})? latestTop(String exercise) {
+    final key = exerciseKey(exercise);
+    for (final s in logic.finishedNewestFirst(_data.sessions)) {
+      final sets = [for (final e in s.exercises) if (exerciseKey(e.name) == key) ...e.sets];
+      if (sets.isNotEmpty) {
+        return (weight: sets.map((x) => x.weight).reduce((a, b) => a > b ? a : b), date: s.startedAt);
+      }
+    }
+    return null;
+  }
+
+  /// Starts this exercise's PR over from its most recent workout: that
+  /// workout's best set becomes the PR. Older workouts stay in History but
+  /// stop counting for PRs. Other exercises are untouched. Returns the
+  /// previous reset (for Undo).
+  DateTime? resetRecord(String exercise) {
+    final latest = latestTop(exercise);
+    if (latest == null) return recordResetAt(exercise);
+    final key = exerciseKey(exercise);
+    final previous = _data.prResets[key];
+    _data.prResets[key] = latest.date;
+    _commit();
+    return previous;
+  }
+
+  /// Undo a reset, or count all history again ([at] null).
+  void restoreRecordReset(String exercise, DateTime? at) {
+    final key = exerciseKey(exercise);
+    if (at == null) {
+      _data.prResets.remove(key);
+    } else {
+      _data.prResets[key] = at;
+    }
+    _commit();
+  }
 
   // ---------- Splits and days ----------
 
@@ -652,6 +697,7 @@ class AppStore extends ChangeNotifier {
         plan: planForSplit(),
         labelOf: sessionTitle,
         cardio: isCardio,
+        resets: _data.prResets,
         extra: extra,
         exercise: exercise,
         own: own,

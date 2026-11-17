@@ -53,6 +53,7 @@ String buildAiPrompt({
   required SharedPlan plan,
   required String Function(Session) labelOf,
   required bool Function(String) cardio,
+  PrResets resets = const {},
   String? extra,
   String? exercise,
   String? own,
@@ -93,7 +94,7 @@ String buildAiPrompt({
 
     switch (question) {
       case AiQuestion.stuck:
-        _writeStuck(b, exercise ?? '', finished.where((s) => !s.oneTime), finished, labelOf);
+        _writeStuck(b, exercise ?? '', finished.where((s) => !s.oneTime), finished, labelOf, resets);
       case AiQuestion.today:
         _writeToday(b, finishedToday(sessions, at), finished, labelOf);
         _writePlan(b, plan);
@@ -101,9 +102,9 @@ String buildAiPrompt({
       case AiQuestion.newPlan:
       case AiQuestion.own:
         // PRs are judged against all history; only PRs set inside the window are written.
-        _writeSummary(b, recent, sessions, labelOf, summaryCutoff);
+        _writeSummary(b, recent, sessions, labelOf, summaryCutoff, resets);
         _writePlan(b, plan);
-        _writeLifts(b, planRecent, finished, cardio, liftLimit);
+        _writeLifts(b, planRecent, finished, cardio, liftLimit, resets);
         if (question != AiQuestion.newPlan) _writeCardio(b, planRecent);
     }
 
@@ -141,6 +142,7 @@ void _writeSummary(
   Iterable<Session> all,
   String Function(Session) labelOf,
   DateTime cutoff,
+  PrResets resets,
 ) {
   b
     ..writeln()
@@ -158,7 +160,7 @@ void _writeSummary(
   final n = recent.length;
   b.writeln('- $n workout${n == 1 ? '' : 's'}: ${counts.entries.map((e) => '${e.key} ${e.value}').join(', ')}. '
       'Average $avg min.');
-  final prs = recentRecords(all, limit: 50).where((r) => r.date.isAfter(cutoff)).toList();
+  final prs = recentRecords(all, limit: 50, resets: resets).where((r) => r.date.isAfter(cutoff)).toList();
   if (prs.isNotEmpty) {
     b.writeln('- New PRs: ${prs.take(10).map((r) => '${r.exercise} ${formatWeight(r.weight)}').join(', ')}.');
   }
@@ -187,6 +189,7 @@ void _writeLifts(
   Iterable<Session> all,
   bool Function(String) cardio,
   int limit,
+  PrResets resets,
 ) {
   // Top set per session, newest first, per exercise.
   final tops = <String, List<double>>{};
@@ -206,7 +209,7 @@ void _writeLifts(
     ..writeln('MY LIFTS (top set of each of the last 4 sessions, oldest → newest; best in the last $aiMaxWeeks weeks)');
   for (final k in keys.take(limit)) {
     final last4 = tops[k]!.take(4).toList().reversed;
-    final best = personalRecord(names[k]!, all);
+    final best = personalRecord(names[k]!, all, resets: resets);
     b.writeln('- ${names[k]}: ${formatWeights(last4)}${best == null ? '' : ' (best ${formatWeight(best)})'}');
   }
   if (keys.length > limit) b.writeln('- …and ${keys.length - limit} more, left out to keep this short.');
@@ -235,6 +238,7 @@ void _writeStuck(
   Iterable<Session> planWindow,
   Iterable<Session> all,
   String Function(Session) labelOf,
+  PrResets resets,
 ) {
   final key = exerciseKey(exercise);
   b
@@ -256,7 +260,7 @@ void _writeStuck(
   } else {
     rows.reversed.forEach(b.writeln);
   }
-  final best = personalRecord(exercise, all);
+  final best = personalRecord(exercise, all, resets: resets);
   if (best != null) b.writeln('- Best in the last $aiMaxWeeks weeks: ${formatWeight(best)}');
 }
 

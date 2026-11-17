@@ -26,6 +26,10 @@ class AppData {
   /// Names logged as time (cardio) rather than weight.
   List<String> cardio;
 
+  /// Per-exercise PR resets: exercise key → the start of the first workout
+  /// that counts for PRs again. Older workouts stay in History.
+  Map<String, DateTime> prResets;
+
   AppData({
     List<Split>? splits,
     this.activeSplitId,
@@ -34,8 +38,10 @@ class AppData {
     required this.sessions,
     required this.library,
     List<String>? cardio,
+    Map<String, DateTime>? prResets,
   })  : splits = splits ?? [],
-        cardio = cardio ?? [...cardioPresets];
+        cardio = cardio ?? [...cardioPresets],
+        prResets = prResets ?? {};
 
   Map<String, dynamic> toJson() => {
         'schemaVersion': schemaVersion,
@@ -46,6 +52,7 @@ class AppData {
         'sessions': sessions.map((s) => s.toJson()).toList(),
         'library': library,
         'cardio': cardio,
+        'prResets': {for (final e in prResets.entries) e.key: e.value.toIso8601String()},
       };
 
   factory AppData.fromJson(Map<String, dynamic> j) => AppData(
@@ -58,6 +65,10 @@ class AppData {
         sessions: (j['sessions'] as List).map((e) => Session.fromJson(e as Map<String, dynamic>)).toList(),
         library: (j['library'] as List).cast<String>().toList(),
         cardio: (j['cardio'] as List?)?.cast<String>().toList(), // null before v4 → presets
+        // Optional: older files have none.
+        prResets: {
+          for (final e in ((j['prResets'] as Map?) ?? const {}).entries) e.key as String: DateTime.parse(e.value as String),
+        },
       );
 
   String encode() => jsonEncode(toJson());
