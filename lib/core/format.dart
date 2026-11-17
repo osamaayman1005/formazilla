@@ -6,6 +6,8 @@ String exerciseKey(String name) => name.trim().toLowerCase();
 
 /// Shows a weight without trailing zeros: 60.0 -> "60", 22.50 -> "22.5".
 String formatWeight(double w) {
+  // Assisted machines log negative weights: shown with a real minus sign.
+  if (w < 0) return '\u2212${formatWeight(-w)}';
   if (w == w.roundToDouble()) return w.toInt().toString();
   var s = w.toStringAsFixed(2);
   while (s.endsWith('0')) {
@@ -17,6 +19,17 @@ String formatWeight(double w) {
 
 /// Joins weights like "40 · 55 · 65 · 75".
 String formatWeights(Iterable<double> ws) => ws.map(formatWeight).join(' · ');
+
+/// A bar's height (floor..1) for [w] among [all]. All non-negative values
+/// scale from zero, as always; with assisted (negative) weights the bars
+/// scale from the lowest to the highest, so less help is a taller bar.
+double barFraction(double w, Iterable<double> all, {double floor = 0.04}) {
+  final hi = all.reduce((a, b) => a > b ? a : b);
+  final lo = all.reduce((a, b) => a < b ? a : b);
+  if (lo >= 0) return hi <= 0 ? floor : (w / hi).clamp(floor, 1.0);
+  if (hi == lo) return 1.0;
+  return (floor + (1 - floor) * (w - lo) / (hi - lo)).clamp(floor, 1.0);
+}
 
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

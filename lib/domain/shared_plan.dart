@@ -231,7 +231,7 @@ SharedPlan? checkPlan(SharedPlan plan) {
       for (final entry in r.weights.entries) {
         final c = clean(entry.key);
         if (c == null || !exercises.contains(c)) continue;
-        if (entry.value.length > 10 || entry.value.any((w) => w.isNaN || w < 0 || w > 9999)) return null;
+        if (entry.value.length > 10 || entry.value.any((w) => w.isNaN || w < -9999 || w > 9999)) return null;
         weights[c] = entry.value;
       }
       final cardio = [

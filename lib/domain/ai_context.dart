@@ -79,6 +79,10 @@ String buildAiPrompt({
       ..writeln('HOW I LOG')
       ..writeln('- Weights are the numbers on the machine or dumbbell, exactly as I log them.')
       ..writeln('  No units, no per-side math. Treat them as my numbers.');
+    if (finished.any((x) => x.exercises.any((e) => e.sets.any((set) => set.weight < 0)))) {
+      b.writeln('- A minus means machine assistance (assisted dips, pull-ups): −20 is stronger than −30. '
+          'Suggest assisted weights the same way, as negative numbers.');
+    }
     final order = plan.days.map((d) => d.name).join(' → ');
     if (order.isNotEmpty) b.writeln('- My split repeats in order: $order.');
     final alternating = [

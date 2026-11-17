@@ -72,7 +72,7 @@ class PrShareCard extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: Container(
-                        height: maxBar <= 0 ? 4 : 84 * (data.recentTops[i] / maxBar).clamp(0.05, 1.0),
+                        height: 84 * barFraction(data.recentTops[i], data.recentTops, floor: 0.05),
                         decoration: BoxDecoration(
                           color: i == data.recentTops.length - 1 ? AppColors.accentLight : AppColors.chip,
                           borderRadius: BorderRadius.circular(5),

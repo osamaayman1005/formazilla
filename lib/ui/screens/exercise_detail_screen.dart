@@ -118,7 +118,7 @@ class _TopSetChart extends StatelessWidget {
                     const SizedBox(height: 4),
                     // Bars grow one after another when the screen opens.
                     TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: max <= 0 ? 0.04 : (points[i].weight / max).clamp(0.04, 1.0)),
+                      tween: Tween(begin: 0, end: barFraction(points[i].weight, points.map((p) => p.weight))),
                       duration: Motion.of(context, Motion.slow + Duration(milliseconds: 60 * i)),
                       curve: Curves.easeOutCubic,
                       builder: (_, f, __) => Container(

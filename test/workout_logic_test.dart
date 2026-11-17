@@ -134,6 +134,22 @@ void main() {
       expect(formatWeight(60), '60');
       expect(formatWeight(22.5), '22.5');
       expect(formatWeight(12.25), '12.25');
+      expect(formatWeight(-25), '\u221225');
+      expect(formatWeight(-17.5), '\u221217.5');
+      expect(formatWeight(0), '0');
+    });
+
+    test('assisted (negative) weights: less help is a PR, bars grow with less help', () {
+      expect(isNewRecord(-15, -20), isTrue);
+      expect(isNewRecord(-25, -20), isFalse);
+      expect(isNewRecord(10, -5), isTrue); // assisted -> weighted
+      // Positive-only bars scale from zero exactly as before.
+      expect(barFraction(50, [50, 100]), 0.5);
+      expect(barFraction(0, [0, 0]), 0.04);
+      // With negatives: lowest is the floor, highest is full height.
+      expect(barFraction(-30, [-30, -20, -10]), 0.04);
+      expect(barFraction(-10, [-30, -20, -10]), 1.0);
+      expect(barFraction(-20, [-30, -20, -10]), closeTo(0.52, 0.001));
     });
   });
 

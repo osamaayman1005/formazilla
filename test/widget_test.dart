@@ -339,4 +339,48 @@ Session _logOne(AppStore store, Rotation rotation) {
   final s = store.startSession(rotation);
   store.addSet(s, 0, 10);
   return s;
+
+  testWidgets('assisted machine: + starts with the minus on; ± flips any weight', (tester) async {
+    final store = await AppStore.open(MemoryStorage());
+    final rotation = store.rotationsOf(store.days.first.id).first;
+    final s1 = store.startSession(rotation);
+    store.addSet(s1, 0, -30);
+    store.finishSession(s1);
+    final s2 = store.startSession(rotation);
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+    await tester.pumpWidget(FormazillaApp(store: store));
+    await tester.tap(find.textContaining('Resume '));
+    await tester.pumpAndSettle();
+    expect(find.text('\u221230'), findsWidgets); // last time shows −30
+
+    // + opens clean, minus already on: typing 25 saves −25.
+    await tester.tap(find.bySemanticsLabel('Log a new weight').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2').last);
+    await tester.tap(find.text('5').last);
+    await tester.pump();
+    expect(find.text('Save \u221225'), findsOneWidget);
+    await tester.ensureVisible(find.text('Save \u221225'));
+    await tester.tap(find.text('Save \u221225'));
+    await tester.pumpAndSettle();
+    expect(store.sessionById(s2.id)!.exercises.first.sets.single.weight, -25);
+    expect(store.record(rotation.exercises.first), -30); // only finished workouts count
+
+    // ± turns it off: 10 is added weight.
+    await tester.tap(find.bySemanticsLabel('Log a new weight').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel(RegExp('Minus on')));
+    await tester.tap(find.text('1').last);
+    await tester.tap(find.text('0').last);
+    await tester.pump();
+    await tester.ensureVisible(find.text('Save 10'));
+    await tester.tap(find.text('Save 10'));
+    await tester.pumpAndSettle();
+    expect(store.sessionById(s2.id)!.exercises.first.sets.map((x) => x.weight), [-25, 10]);
+  });
 }

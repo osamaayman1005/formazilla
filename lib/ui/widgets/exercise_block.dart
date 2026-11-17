@@ -325,6 +325,8 @@ class ExerciseBody extends StatelessWidget {
       title: '${ex.name} · ${dropSet ? 'drop set' : 'set ${n + 1}'}',
       dropSet: dropSet,
       hint: hint.isEmpty ? null : hint,
+      // Assisted machine (last weight was negative): the minus starts on.
+      negative: (ex.sets.isNotEmpty ? ex.sets.last.weight : (last.isNotEmpty ? last.first : best ?? 0)) < 0,
     );
     if (r?.weight != null) store.addSet(session, index, r!.weight!, dropSet: r.dropSet);
   }

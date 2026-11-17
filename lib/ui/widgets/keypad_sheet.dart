@@ -18,6 +18,10 @@ class KeypadResult {
 /// (e.g. "Last time 35") is shown as information only, never prefilled.
 /// With an [initial] value (editing a logged set) the number starts selected,
 /// so the first key replaces it; the ± nudges are shown.
+///
+/// The ± key makes the weight negative: assisted machines (dips, pull-ups),
+/// where less help is stronger. [negative] starts a clean keypad with the
+/// minus on (last time was assisted).
 Future<KeypadResult?> showWeightKeypad(
   BuildContext context, {
   required String title,
@@ -29,6 +33,8 @@ Future<KeypadResult?> showWeightKeypad(
   String? unit,
   String deleteLabel = 'Delete set',
   String? hint,
+  bool negative = false,
+  bool allowNegative = true,
 }) {
   return showModalBottomSheet<KeypadResult>(
     context: context,
@@ -43,6 +49,8 @@ Future<KeypadResult?> showWeightKeypad(
       unit: unit,
       deleteLabel: deleteLabel,
       hint: hint,
+      negative: negative,
+      allowNegative: allowNegative,
     ),
   );
 }
@@ -58,6 +66,7 @@ Future<KeypadResult?> showMinutesKeypad(BuildContext context, {required String t
       bumps: const [-5, -1, 1, 5],
       unit: 'min',
       deleteLabel: 'Clear time',
+      allowNegative: false,
     );
 
 class _Keypad extends StatefulWidget {
@@ -71,6 +80,8 @@ class _Keypad extends StatefulWidget {
     this.unit,
     required this.deleteLabel,
     this.hint,
+    this.negative = false,
+    this.allowNegative = true,
   });
 
   final String title;
@@ -82,19 +93,26 @@ class _Keypad extends StatefulWidget {
   final String? unit;
   final String deleteLabel;
   final String? hint;
+  final bool negative;
+  final bool allowNegative;
 
   @override
   State<_Keypad> createState() => _KeypadState();
 }
 
 class _KeypadState extends State<_Keypad> {
-  late String _text = widget.initial == null ? '' : formatWeight(widget.initial!);
+  /// Digits only; the sign lives in [_negative].
+  late String _text = widget.initial == null ? '' : formatWeight(widget.initial!.abs());
+  late bool _negative = widget.initial == null ? widget.negative && widget.allowNegative : widget.initial! < 0;
   late bool _dropSet = widget.dropSet;
 
   /// True while an existing value is shown "selected": the next key replaces it.
   late bool _replace = widget.initial != null;
 
-  double? get _value => double.tryParse(_text);
+  double? get _value {
+    final v = double.tryParse(_text);
+    return v == null ? null : (_negative && v != 0 ? -v : v);
+  }
 
   void _press(String key) {
     setState(() {
@@ -117,15 +135,17 @@ class _KeypadState extends State<_Keypad> {
   }
 
   void _bump(double delta) {
-    final v = ((_value ?? 0) + delta).clamp(0, 99999).toDouble();
+    final floor = widget.allowNegative ? -99999 : 0;
+    final v = ((_value ?? 0) + delta).clamp(floor, 99999).toDouble();
     setState(() {
       _replace = false;
-      _text = formatWeight(v);
+      _negative = v < 0;
+      _text = formatWeight(v.abs());
     });
   }
 
   Widget _preview() {
-    final caption = widget.unit ?? (widget.initial != null ? null : 'type the weight');
+    final caption = widget.unit ?? (_negative ? 'assist' : (widget.initial != null ? null : 'type the weight'));
     if (_text.isEmpty) {
       return DashedBorder(
         radius: 8,
@@ -134,7 +154,11 @@ class _KeypadState extends State<_Keypad> {
           width: 132,
           height: 132,
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(width: 3, height: 48, decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(2))),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              if (_negative)
+                Text('\u2212', style: AppText.sticker.copyWith(fontSize: 48, color: AppColors.stickerInk)),
+              Container(width: 3, height: 48, decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(2))),
+            ]),
             const SizedBox(height: 10),
             Text(caption ?? 'type the weight',
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.muted)),
@@ -159,12 +183,14 @@ class _KeypadState extends State<_Keypad> {
           ),
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(_text, style: AppText.sticker.copyWith(fontSize: 60, color: AppColors.stickerInk)),
+            child: Text(_negative ? '\u2212$_text' : _text,
+                style: AppText.sticker.copyWith(fontSize: 60, color: AppColors.stickerInk)),
           ),
         ),
-        if (widget.unit != null) ...[
+        if (widget.unit != null || _negative) ...[
           const SizedBox(height: 8),
-          Text(widget.unit!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.stickerCaption)),
+          Text(widget.unit ?? 'assist',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.stickerCaption)),
         ],
       ]),
     );
@@ -176,7 +202,7 @@ class _KeypadState extends State<_Keypad> {
     final value = _value;
     final hint = editing
         ? (_replace ? 'Type to replace it, or nudge it' : null)
-        : widget.hint;
+        : (widget.hint ?? (_negative ? 'Minus = the machine helps you. Less help is stronger' : null));
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(AppSpace.screen, 0, AppSpace.screen, AppSpace.lg),
@@ -222,18 +248,34 @@ class _KeypadState extends State<_Keypad> {
               ['1', '2', '3'],
               ['4', '5', '6'],
               ['7', '8', '9'],
-              ['.', '0', '⌫'],
+              ['±', '.', '0', '⌫'],
             ])
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(children: [
                   for (final k in row)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _Key(label: k, onTap: () => _press(k)),
+                    if (k == '±')
+                      ...[
+                        if (widget.allowNegative)
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: _Key(
+                                label: '±',
+                                active: _negative,
+                                semantics: _negative ? 'Minus on: assisted weight. Tap for added weight' : 'Make it negative: assisted weight',
+                                onTap: () => setState(() => _negative = !_negative),
+                              ),
+                            ),
+                          ),
+                      ]
+                    else
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: _Key(label: k, onTap: () => _press(k)),
+                        ),
                       ),
-                    ),
                 ]),
               ),
             const SizedBox(height: AppSpace.sm),
@@ -299,15 +341,19 @@ class _KeypadState extends State<_Keypad> {
 }
 
 class _Key extends StatelessWidget {
-  const _Key({required this.label, required this.onTap});
+  const _Key({required this.label, required this.onTap, this.active = false, this.semantics});
 
   final String label;
   final VoidCallback onTap;
 
+  /// The ± key while the minus is on.
+  final bool active;
+  final String? semantics;
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.chip,
+    final key = Material(
+      color: active ? AppColors.accent : AppColors.chip,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -324,5 +370,7 @@ class _Key extends StatelessWidget {
         ),
       ),
     );
+    if (semantics == null) return key;
+    return Semantics(button: true, toggled: active, label: semantics, excludeSemantics: true, child: key);
   }
 }
