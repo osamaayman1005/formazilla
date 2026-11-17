@@ -100,7 +100,6 @@ class _TopSetChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final max = points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Top weight per session', style: AppText.caption),
       const SizedBox(height: AppSpace.md),

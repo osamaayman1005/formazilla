@@ -19,7 +19,6 @@ class PrShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxBar = data.recentTops.reduce((a, b) => a > b ? a : b);
     return Container(
       width: size.width,
       height: size.height,
